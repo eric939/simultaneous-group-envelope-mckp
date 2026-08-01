@@ -215,7 +215,7 @@ def primary_table(rows: list[dict[str, str]]) -> str:
         [
             r"\begin{tabular}{rrrrrrrr}",
             r"\toprule",
-            r"Groups & Cases & Compressed (s) & Clique (s) & Geometric speedup & Wins & Fixed-threshold LPs C/Q & Clique interval LPs \\",
+            r"Groups & Cases & Compressed (s) & Clique (s) & Geometric speedup & Wins & \shortstack{Fixed-threshold LP\\evaluations (C / Q)} & \shortstack{Clique interval LP\\evaluations} \\",
             r"\midrule",
             *body,
             r"\bottomrule",
