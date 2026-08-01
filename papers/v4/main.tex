@@ -157,18 +157,29 @@ is \eqref{eq:robust-mckp} with two options per item: the unselected option $(0,W
 
 For completeness, threshold sufficiency follows directly from convexity.  For a fixed selected deviation vector $q$, the protection function $h(\theta)=\Gamma\theta+\sum_i\pos{q_i-\theta}$ is convex and piecewise linear.  Away from a selected deviation its slope is $\Gamma-|\{i:q_i>\theta\}|$, so a minimum is attained at zero or at a selected deviation, with a flat interval allowed.  The global set $\B$ contains all such candidates.
 
-\subsection{Finite-menu pricing specialization}\label{sec:pricing-specialization}
+\subsection{Finite-menu pricing: MCKP derivation and use}\label{sec:pricing-specialization}
 
-Finite-menu pricing supplies one operational specialization.  Product $i$ has reference price $\bar p_i>0$, exposure $w_i\ge0$, and admissible prices $p_{ij}>0$, $j\in J_i$; admissibility can encode the reference band $p_{ij}\in[(1-\sigma_i)\bar p_i,(1+\sigma_i)\bar p_i]$ for $\sigma_i\in[0,1)$.  Binary $x_{ij}$ selects exactly one price.  At option $j$, demand is $\widetilde g_{ij}=\hat g_{ij}+\xi_i\delta_{ij}$, where $0\le\delta_{ij}\le\hat g_{ij}$, $|\xi_i|\le1$, and $\sum_i|\xi_i|\le\Gamma$.  Let $\widetilde N(x,\xi):=\sum_{i,j}w_ip_{ij}\widetilde g_{ij}x_{ij}$ and $\widetilde D(x,\xi):=\sum_{i,j}w_i\bar p_i\widetilde g_{ij}x_{ij}$.  Nominal revenue $\widetilde N(x,0)$ is maximized subject to $\widetilde N(x,\xi)/\widetilde D(x,\xi)\ge\Delta$ for every admissible $\xi$.
+Finite-menu pricing supplies one operational specialization.  Product $i$ has reference price $\bar p_i>0$, exposure $w_i\ge0$, and admissible prices $p_{ij}>0$, $j\in J_i$; admissibility can encode the reference band $p_{ij}\in[(1-\sigma_i)\bar p_i,(1+\sigma_i)\bar p_i]$ for $\sigma_i\in[0,1)$.  Binary $x_{ij}$ selects exactly one price, so products are the MCKP groups and candidate prices are their options.  At option $j$, demand is $\widetilde g_{ij}=\hat g_{ij}+\xi_i\delta_{ij}$, where $0\le\delta_{ij}\le\hat g_{ij}$, $|\xi_i|\le1$, and $\sum_i|\xi_i|\le\Gamma$.  Let $\widetilde N(x,\xi):=\sum_{i,j}w_ip_{ij}\widetilde g_{ij}x_{ij}$ and $\widetilde D(x,\xi):=\sum_{i,j}w_i\bar p_i\widetilde g_{ij}x_{ij}$.  Nominal revenue $\widetilde N(x,0)$ is maximized subject to $\widetilde N(x,\xi)/\widetilde D(x,\xi)\ge\Delta$ for every admissible $\xi$.
 
-If $\widetilde D>0$ throughout, cross-multiplication and adverse signs subtract the $\Gamma$ largest absolute selected residual deviations.  The coefficients of \eqref{eq:robust-mckp} are
+If $\widetilde D>0$ throughout, the robust ratio constraint is equivalent to requiring the worst-case residual $\widetilde N-\Delta\widetilde D$ to be nonnegative.  Because exactly one option is selected per product, adverse signs subtract the $\Gamma$ largest absolute selected residual deviations:
+\begin{align}
+\min_{|\xi_i|\le1,\ \sum_i|\xi_i|\le\Gamma}
+\{\widetilde N(x,\xi)-\Delta\widetilde D(x,\xi)\}
+={}&\sum_{i,j}a_{ij}x_{ij}
+-\max_{\substack{0\le u_i\le1\\\sum_i u_i\le\Gamma}}
+\sum_i u_i\sum_jd_{ij}x_{ij}. \label{eq:pricing-residual}
+\end{align}
+Together with nominal revenue as the objective, this is exactly \eqref{eq:robust-mckp}, with coefficients
 \begin{equation}\label{eq:pricing-map}
 v_{ij}=w_ip_{ij}\hat g_{ij},\qquad
 a_{ij}=w_i(p_{ij}-\Delta\bar p_i)\hat g_{ij},\qquad
 d_{ij}=\left|w_i(p_{ij}-\Delta\bar p_i)\delta_{ij}\right|.
 \end{equation}
-Without positivity, only the additive residual interpretation remains.  This specialization motivates the application-derived panel but is not required by the algorithm.
+Without positivity, only the additive residual interpretation remains.
 
+To apply the paper's results, a decision maker specifies the price menus, nominal demands, deviation scales, robustness budget $\Gamma$, and target ratio $\Delta$, then constructs \eqref{eq:pricing-map} once.  Substitution into \eqref{eq:fixed-threshold-feasibility} produces one nominal MCKP relaxation per deviation threshold.  The group-envelope oracle bounds these relaxations simultaneously, and the adaptive algorithm certifies the best LP value over the complete threshold family.  Thus the certificate supplies a root or outer-search upper bound on robust nominal revenue; it accelerates robust price-menu optimization when interval LP work is material, but it does not estimate demand or select $\Gamma$ or $\Delta$.
+
+\FloatBarrier
 \subsection{Prior-art boundary}
 
 \Cref{tab:prior-art} separates the task studied here from its ingredients: threshold enumeration and filtering \citep{BertsimasSim2003,AlvarezMiranda2013,LeeKwon2014}, divide-and-conquer \citep{Hansknecht2018}, robust formulations and inequalities \citep{Atamturk2006,FischettiMonaci2012,Monaci2013,JoungPark2021,JoungOhLee2023}, and fixed-MCKP algorithms \citep{SinhaZoltners1979,Zemel1980,Dyer1984,Szkaliczki2025}.  The closest formulation component is the bounded-threshold framework with clique aggregation of \citet{BusingGersingKoster2023}.  None of these sources, to our knowledge, derives the baseline cancellation, two-envelope representation, certified simultaneous multiplier evaluation, or its exact-minimax dominance relation for this threshold family.
@@ -534,7 +545,7 @@ This result is a bottleneck decomposition rather than counterevidence to the LP-
 
 \subsection{Application-derived semi-synthetic panel}
 
-The pricing model in \Cref{sec:pricing-specialization} also supplies an application-derived realism check.  We use the UCI Online Retail data set, which contains 541,909 transaction records \citep{Chen2015UCI}.  The released calibration reads the first 200,000 records; after positive-price/quantity filtering and the eight-observation SKU rule, 192,451 observations contribute to 2,549 SKU aggregates.  These aggregates calibrate the segment mix, price levels, volumes, and uncertainty scales of nine semi-synthetic pricing portfolios; documented elasticity and menu-generation assumptions remain modeled rather than observed.  The panel uses 360, 720, and 1,440 groups, twelve price choices, three new seeds per size, and three balanced repetitions.  Both methods reach tolerance, and the compressed method wins \PubApplicationWins{}/\PubApplicationCases{} instances with geometric-mean speedup \PubApplicationGeoSpeedup$\times$ (95\% cell-stratified bootstrap interval [\PubApplicationCILow, \PubApplicationCIHigh]), rising to \PubApplicationNHighSpeedup$\times$ at 1,440 groups.  This panel tests scale and coefficient realism; demand estimation is outside the algorithmic scope, and the nonrandom row cap and modeled demand curves preclude causal or transaction-level validation claims.
+The pricing model in \Cref{sec:pricing-specialization} also supplies an application-derived realism check.  We use the UCI Online Retail data set, which contains 541,909 transaction records \citep{Chen2015UCI}.  The released calibration reads the first 200,000 records; after positive-price/quantity filtering and the eight-observation SKU rule, 192,451 observations contribute to 2,549 SKU aggregates.  These aggregates calibrate the segment mix, price levels, volumes, and uncertainty scales of nine semi-synthetic pricing portfolios; documented elasticity and menu-generation assumptions remain modeled rather than observed.  For each portfolio, the reported certificate is an upper bound on the best robust-feasible nominal revenue across the complete price-risk threshold family.  The panel uses 360, 720, and 1,440 groups, twelve price choices, three new seeds per size, and three balanced repetitions.  Both methods reach tolerance, and the compressed method wins \PubApplicationWins{}/\PubApplicationCases{} instances with geometric-mean speedup \PubApplicationGeoSpeedup$\times$ (95\% cell-stratified bootstrap interval [\PubApplicationCILow, \PubApplicationCIHigh]), rising to \PubApplicationNHighSpeedup$\times$ at 1,440 groups.  This panel tests scale and coefficient realism; demand estimation is outside the algorithmic scope, and the nonrandom row cap and modeled demand curves preclude causal or transaction-level validation claims.
 
 \subsection{Scope and limitations}
 
