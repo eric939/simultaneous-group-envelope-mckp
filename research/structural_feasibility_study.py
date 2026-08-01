@@ -776,11 +776,11 @@ def adaptive_interval_bound(
                 lower = max(lower, lp_cache[child_lo])
                 continue
             child = interval_record(child_lo, child_hi)
+            lower = max(lower, max(lp_cache.values(), default=lower))
             if child[0] > lower + relative_tolerance * max(1.0, abs(lower)):
                 heapq.heappush(queue, (-child[0], child_lo, child_hi))
             else:
                 discarded_upper = max(discarded_upper, child[0])
-        lower = max(lower, max(lp_cache.values(), default=lower))
         splits += 1
     upper = max(lower, discarded_upper, -queue[0][0] if queue else float("-inf"))
     if not queue:

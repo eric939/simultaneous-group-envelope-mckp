@@ -188,6 +188,7 @@ def test_near_repeated_deviations_preserve_endpoint_convention(spacing: float) -
     )
     dense = ThetaIntervalOracle(instance)
     compressed = CompressedThetaIntervalOracle(instance)
+    assert len(compressed.thetas) == 3
     for lam in (1e-12, 0.3, 7.0):
         expected = dense.values_at_lambda(lam, 0, len(dense.thetas) - 1)
         actual = compressed.values_at_lambda(lam, 0, len(compressed.thetas) - 1)

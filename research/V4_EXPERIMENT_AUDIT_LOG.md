@@ -1,13 +1,13 @@
 # V4 experiment audit log
 
-Date: 21 July 2026. The canonical evidence directory is
-`results/v4_publication_20260721_certified_final`.
+Initial audit: 21 July 2026; final rerun audit: 1 August 2026. The canonical evidence directory is
+`results/release`.
 
 ## Certified final design
 
 `v4_publication_campaign.py` serializes the complete design and gates to
 `protocol.json` before each phase. Its SHA-256 digest is
-`a63a593f1c67db021624a75a241e4b44123982222c7830a6095dd9c22b8a98f2`.
+`6db8550e9e9bb47f352bac93423d82067ed09e6ba6cbe4608a7544c2e3a7d261`.
 Instance families, sizes, seeds, repetitions, timing order, single-thread rule,
 tolerance, statistical unit, family--size-cell bootstrap, external archive
 digest, and go/no-go thresholds were unchanged during the final run. This is a
@@ -54,6 +54,10 @@ tables.
 8. **Multiplier theorem--implementation gap.** The production oracle no longer relies on a fixed grid plus heuristic scalar refinement. Convex geometric bracketing, golden-section contraction, and an explicit Lipschitz constant return an evaluated valid upper bound and a certified lower enclosure. Directed binary64 rounding is outward on both endpoints, and the reported gap includes both rounding steps.
 9. **Publication-line separation.** The benchmark seed namespace is `v4|family|n|m|Gamma|seed`; no v3 implementation token remains in the v4 generator or evidence. The cover letter identifies the independent v3 preprint and states the exact non-overlap.
 10. **External coefficient provenance.** Nine cases from the CC BY 4.0 Gersing--Büsing--Koster archive are parsed only after verifying SHA-256 `8571b3e545607415a38a39dc506b21bd891b6a22ce252e42a1622a5a5f451818`. The transfer of source objective deviations to v4 resource deviations is disclosed as an out-of-generator coefficient test, not source-model replication.
+11. **Exact threshold preservation.** Independent adversarial review found that tolerance-clustering distinct deviations could remove the only feasible breakpoint. The exact builder now preserves every binary64-distinct deviation plus zero, and a 100-group counterexample is a regression for both interval-search variants.
+12. **Recorded thread control.** The July protocol stated one thread while its environment variables were unset. The August runner sets and records `OMP_NUM_THREADS`, `MKL_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, `VECLIB_MAXIMUM_THREADS`, and `NUMEXPR_NUM_THREADS` to one; the verifier rejects missing controls.
+13. **Complete application protocol.** The UCI application design is now part of the serialized protocol rather than a separate constant outside it.
+14. **Comparator-policy alignment.** The compressed and clique adaptive routines now refresh the common fixed-threshold lower bound at the same child-processing point before pruning.
 
 No gate, seed, family, instance size, timing rule, or unsuccessful instance was
 changed or excluded during the certified final run. Only that complete run

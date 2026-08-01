@@ -26,4 +26,4 @@ jobs:
       - name: Install verification dependencies
         run: python -m pip install -e ".[experiments,validation,dev]"
       - name: Verify tests, evidence hashes, gates, and generated artifacts
-        run: make v4-verify PYTHON=python
+        run: make verify PYTHON=python

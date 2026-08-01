@@ -233,7 +233,13 @@ def run_campaign(
         "processor": platform.processor(),
         "thread_environment": {
             key: os.environ.get(key)
-            for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS")
+            for key in (
+                "OMP_NUM_THREADS",
+                "MKL_NUM_THREADS",
+                "OPENBLAS_NUM_THREADS",
+                "VECLIB_MAXIMUM_THREADS",
+                "NUMEXPR_NUM_THREADS",
+            )
         },
     }
     (output_dir / "environment_exact_integration.json").write_text(

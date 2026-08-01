@@ -13,6 +13,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
+plt.rcParams.update({"pdf.fonttype": 42, "ps.fonttype": 42})
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -59,15 +61,32 @@ def source_snapshot() -> list[Path]:
     paths: set[Path] = {ROOT / "Makefile", ROOT / "pyproject.toml"}
     paths.update((ROOT / "src" / "robust_mckp").glob("*.py"))
     paths.update((ROOT / "tests").glob("*.py"))
+    paths.update((ROOT / "papers" / "v4").glob("*.tex"))
     for relative in (
+        ".gitignore",
+        "AGENTS.md",
+        "CITATION.cff",
+        "README.md",
+        "REPRODUCIBILITY.md",
+        "REVISION_HISTORY.md",
+        "SUBMISSION.md",
+        "papers/README.md",
+        "papers/v4/README.md",
+        "papers/v4/cover-letter.md",
+        "protocol/deviations.md",
+        "protocol/release-20260801.md",
         "research/bound_dominance.py",
         "research/benchmark_instances.py",
         "research/compressed_interval_oracle.py",
+        "research/EVIDENCE_LEDGER_V4.csv",
         "research/exact_integration_campaign.py",
         "research/generate_v4_publication_artifacts.py",
         "research/integrated_exact_solver.py",
+        "research/LITERATURE_NOVELTY_AUDIT_V4.md",
         "research/novelty_go_no_go.py",
         "research/structural_feasibility_study.py",
+        "research/THEOREM_AUDIT_V4.md",
+        "research/V4_EXPERIMENT_AUDIT_LOG.md",
         "research/v4_publication_campaign.py",
         "scripts/benchmark_solvers.py",
         "scripts/build_v4_anonymous_supplement.py",
@@ -427,8 +446,8 @@ def speedup_figure(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--results", type=Path, default=ROOT / "results" / "v4_publication_20260721_certified_final")
-    parser.add_argument("--paper", type=Path, default=ROOT / "paper_versions" / "v4")
+    parser.add_argument("--results", type=Path, default=ROOT / "results" / "release")
+    parser.add_argument("--paper", type=Path, default=ROOT / "papers" / "v4")
     args = parser.parse_args()
     results = args.results.resolve()
     paper = args.paper.resolve()
@@ -438,13 +457,14 @@ def main() -> None:
     kernel = read_csv(results / "kernel.csv")
     stress = read_csv(results / "stress.csv")
     external = read_csv(results / "external_knapsack.csv")
-    write(paper / "auto" / "v4_publication_numbers.tex", build_macros(results))
-    write(paper / "tables" / "v4_primary_publication.tex", primary_table(primary))
-    write(paper / "tables" / "v4_robustness_publication.tex", robustness_table(results, robustness))
-    write(paper / "tables" / "v4_kernel_publication.tex", kernel_table(kernel))
-    write(paper / "tables" / "v4_stress_publication.tex", stress_table(stress))
-    write(paper / "tables" / "v4_external_publication.tex", external_table(external))
-    speedup_figure(primary, stress, kernel, paper / "figures" / "v4_speedup_scaling.pdf")
+    generated = paper / "generated"
+    write(generated / "numbers.tex", build_macros(results))
+    write(generated / "table-primary.tex", primary_table(primary))
+    write(generated / "table-robustness.tex", robustness_table(results, robustness))
+    write(generated / "table-kernel.tex", kernel_table(kernel))
+    write(generated / "table-stress.tex", stress_table(stress))
+    write(generated / "table-external.tex", external_table(external))
+    speedup_figure(primary, stress, kernel, generated / "speedup-scaling.pdf")
 
     evidence_files = sorted(results.rglob("*.csv")) + sorted(results.rglob("*.json"))
     manifest = {
@@ -454,17 +474,17 @@ def main() -> None:
             path.relative_to(ROOT).as_posix(): sha256(path) for path in source_snapshot()
         },
         "generated": [
-            "auto/v4_publication_numbers.tex",
-            "tables/v4_primary_publication.tex",
-            "tables/v4_robustness_publication.tex",
-            "tables/v4_kernel_publication.tex",
-            "tables/v4_stress_publication.tex",
-            "tables/v4_external_publication.tex",
-            "figures/v4_speedup_scaling.pdf",
-            "figures/v4_speedup_scaling.png",
+            "generated/numbers.tex",
+            "generated/table-primary.tex",
+            "generated/table-robustness.tex",
+            "generated/table-kernel.tex",
+            "generated/table-stress.tex",
+            "generated/table-external.tex",
+            "generated/speedup-scaling.pdf",
+            "generated/speedup-scaling.png",
         ],
     }
-    write(paper / "auto" / "v4_evidence_manifest.json", json.dumps(manifest, indent=2, sort_keys=True))
+    write(generated / "evidence-manifest.json", json.dumps(manifest, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

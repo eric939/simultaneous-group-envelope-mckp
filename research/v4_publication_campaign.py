@@ -90,11 +90,18 @@ EXTERNAL_KNAPSACK_SPEC = {
 # This object is intentionally static.  Every output directory contains an
 # exact copy plus its SHA-256 digest before numerical work begins.
 PROTOCOL = {
-    "version": "v4-publication-20260721-certified-minimax",
+    "version": "v4-publication-20260801-certified-minimax",
     "statistical_unit": "instance",
     "timing_estimator": "median wall time within instance",
     "method_order": "alternating paired blocks within instance",
     "threads": 1,
+    "thread_environment": {
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+    },
     "relative_tolerance": RELATIVE_TOLERANCE,
     "generator_seed_namespace": "v4|family|n|m|Gamma|seed",
     "validation": {"instances": 40, "seed_start": 1000},
@@ -146,6 +153,7 @@ PROTOCOL = {
         "repeats": 2,
         "time_limit_seconds": 90.0,
     },
+    "application": APPLICATION_SPEC,
     "external_knapsack": EXTERNAL_KNAPSACK_SPEC,
     "gates": {
         "validation_max_absolute_error": 2e-6,
@@ -629,7 +637,7 @@ def run_kernel(output_dir: Path) -> dict:
         dense_times, dense_results, compressed_times, compressed_results = [], [], [], []
         for repeat in range(int(spec["repeats"])):
             order = ("dense", "compressed") if (repeat + int(seed)) % 2 == 0 else ("compressed", "dense")
-            for method in order:
+            for order_index, method in enumerate(order):
                 elapsed, result = _time_call(lambda method=method: _kernel_call(instance, method, multipliers))
                 raw.append(
                     {
@@ -638,6 +646,7 @@ def run_kernel(output_dir: Path) -> dict:
                         "n": n,
                         "seed": seed,
                         "repeat": repeat,
+                        "execution_order": "first" if order_index == 0 else "second",
                         "method": method,
                         "total_seconds": elapsed,
                         "construct_seconds": result["construct_seconds"],
@@ -833,6 +842,8 @@ def run_common_trace(output_dir: Path) -> dict:
         )
         for method, times in (("compressed", compressed_times), ("clique", clique_times)):
             for repeat, seconds in enumerate(times):
+                compressed_first = (repeat + int(seed)) % 2 == 0
+                method_first = compressed_first == (method == "compressed")
                 raw.append(
                     {
                         "instance": instance.name,
@@ -841,6 +852,7 @@ def run_common_trace(output_dir: Path) -> dict:
                         "seed": seed,
                         "method": method,
                         "repeat": repeat,
+                        "execution_order": "first" if method_first else "second",
                         "seconds": seconds,
                     }
                 )
@@ -1336,7 +1348,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=ROOT / "results" / "v4_publication_20260721_certified_final",
+        default=ROOT / "results" / "release",
     )
     parser.add_argument(
         "--calibration-dir",

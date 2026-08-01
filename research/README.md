@@ -23,17 +23,17 @@ released evidence.
 Run the released-artifact verification from the repository root:
 
 ```bash
-make v4-verify PYTHON=.venv/bin/python
+make verify PYTHON=.venv/bin/python
 ```
 
 Run the full serialized protocol into new output directories:
 
 ```bash
-make v4-reproduce PYTHON=.venv/bin/python
+make reproduce PYTHON=.venv/bin/python
 ```
 
 `novelty_go_no_go.py` and `structural_feasibility_study.py` now provide shared
 oracle and adaptive-certificate components used by the released campaign and
-tests. Only files hashed by `paper_versions/v4/auto/v4_evidence_manifest.json`
-and records in `results/v4_publication_20260721_certified_final/` support the
+tests. Only files hashed by `papers/current/generated/evidence-manifest.json`
+and records in `results/release/` support the
 manuscript's numerical claims.

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Preview or remove only ignored, reproducible workspace debris.
+"""Preview or remove ignored, reproducible workspace debris.
 
-Versioned paper and code archives are never cleanup candidates.  Canonical
-legacy payloads live under ``legacy/``; local ``paper_versions/v2`` and
-``paper_versions/v3`` directories are also preserved if restored later.
+The complete ``papers/`` history and ``results/release`` are never cleanup
+candidates.
 """
 from __future__ import annotations
 
@@ -19,32 +18,7 @@ TRANSIENT_DIRECTORIES = (
     ROOT / ".pytest_cache",
     ROOT / "tmp",
     ROOT / "src" / "robust_mckp.egg-info",
-    ROOT / "output" / "anonymous",
-    ROOT / "paper_versions" / "v4" / "build_ec",
-    ROOT / "paper_versions" / "v4" / "build_ec_blind",
-    ROOT / "paper_versions" / "v4" / "build_full",
-    ROOT / "paper_versions" / "v4" / "build_opre",
-    ROOT / "paper_versions" / "v4" / "build_opre_blind",
-    ROOT / "paper_versions" / "v4" / "build_summary",
-    ROOT / "paper_versions" / "v4" / "figures" / "final_algorithmic_strengthening",
-    ROOT / "paper_versions" / "v4" / "figures" / "top_journal",
-    ROOT / "paper_versions" / "v4" / "figures" / "v3_experiments",
-    ROOT / "paper_versions" / "v4" / "tables" / "final_algorithmic_strengthening",
-    ROOT / "paper_versions" / "v4" / "tables" / "submission_upgrade",
-    ROOT / "paper_versions" / "v4" / "tables" / "v3_experiments",
-)
-LEGACY_V4_FILES = (
-    ROOT / "paper_versions" / "v4" / "auto" / "auto_numbers.tex",
-    ROOT / "paper_versions" / "v4" / "auto" / "extended_auto_numbers.tex",
-    ROOT / "paper_versions" / "v4" / "auto" / "submission_performance_numbers.tex",
-    ROOT / "paper_versions" / "v4" / "auto" / "submission_upgrade_numbers.tex",
-    ROOT / "paper_versions" / "v4" / "auto" / "v3_experiment_numbers.tex",
-    ROOT / "paper_versions" / "v4" / "auto" / "v4_experiment_numbers.tex",
-    ROOT / "paper_versions" / "v4" / "tables" / "extended_ablation_table.tex",
-    ROOT / "paper_versions" / "v4" / "tables" / "scalability_table.tex",
-    ROOT / "paper_versions" / "v4" / "tables" / "v4_confirmatory_table.tex",
-    ROOT / "paper_versions" / "v4" / "main_v4_opre.ttt",
-    ROOT / "paper_versions" / "v4" / "main_v4_opre_blind.ttt",
+    ROOT / "papers" / "v4" / "build",
 )
 LATEX_SUFFIXES = (".aux", ".log", ".out", ".toc", ".xdv", ".synctex.gz")
 
@@ -75,12 +49,13 @@ def candidates(tracked: set[Path]) -> list[Path]:
         tuple(
             path
             for path in results_root.iterdir()
-            if path.is_dir() and path.name != "v4_publication_20260721_certified_final"
+            if path.is_dir()
+            and path.name != "release"
         )
         if results_root.is_dir()
         else ()
     )
-    for path in (*TRANSIENT_DIRECTORIES, *result_directories, *LEGACY_V4_FILES):
+    for path in (*TRANSIENT_DIRECTORIES, *result_directories):
         resolved = path.resolve()
         contains_tracked_file = any(
             item == resolved or resolved in item.parents for item in tracked
@@ -93,7 +68,7 @@ def candidates(tracked: set[Path]) -> list[Path]:
     for path in ROOT.rglob("__pycache__"):
         if not skipped(path) and not any(path.resolve() in item.parents for item in tracked):
             found.add(path)
-    paper = ROOT / "paper_versions" / "v4"
+    paper = ROOT / "papers" / "v4"
     if paper.is_dir():
         for path in paper.iterdir():
             if not path.is_file() or path.resolve() in tracked:

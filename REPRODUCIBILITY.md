@@ -1,8 +1,7 @@
 # Reproducibility Guide
 
-**Canonical paper and evidence:** v4, July 2026. The manuscript source is
-`paper_versions/v4/`; the released result directory is
-`results/v4_publication_20260721_certified_final/`.
+**Canonical paper and evidence:** v4, August 2026. The manuscript source is
+`papers/current/`; the released result directory is `results/release/`.
 
 ## Environment
 
@@ -21,7 +20,7 @@ comparison both use the same SciPy/HiGHS fixed-threshold LP routine.
 ## Verify the released artifact
 
 ```bash
-make v4-verify PYTHON=.venv/bin/python
+make verify PYTHON=.venv/bin/python
 ```
 
 This bounded check:
@@ -41,7 +40,7 @@ hash-verified CSVs.
 
 ## Serialized experimental design
 
-The protocol is serialized in `results/v4_publication_20260721_certified_final/protocol.json`.
+The protocol is serialized in `results/release/protocol.json`.
 Its SHA-256 is recorded before each phase. The complete certified campaign was
 run after the algorithmic and reporting protocol had been finalized; it is a
 reproducible fixed design, not a preregistered study. The statistical unit is an instance;
@@ -80,17 +79,17 @@ they are not population-sampling claims about all robust MCKP instances.
 ## Full end-to-end rerun
 
 ```bash
-make v4-reproduce PYTHON=.venv/bin/python
+make reproduce PYTHON=.venv/bin/python
 ```
 
 This command runs tests, executes every serialized phase in order, and generates a
 fresh set of paper macros, tables, and figures under
 `tmp/v4_reproduction_paper/`. Fresh timing results are written to
-`results/v4_reproduction/`; released results are never overwritten. Override
-these locations with `V4_RUN_RESULTS=...` and `V4_RUN_PAPER=...`.
+`results/local/`; released results are never overwritten. Override these
+locations with `LOCAL_RESULTS=...` and `LOCAL_PAPER=...`.
 
 The application phase uses the released UCI-derived aggregates in
-`results/v4_publication_20260721_certified_final/uci_calibration/`. Raw UCI transactions
+`results/release/uci_calibration/`. Raw UCI transactions
 are not redistributed. To rebuild those aggregates from the source data,
 download the UCI Online Retail CSV, place it in a local cache directory, and
 run:
@@ -100,7 +99,7 @@ run:
   --source uci_online_retail \
   --max-rows 200000 \
   --cache-dir data_cache/pathC_uci \
-  --output-dir results/v4_reproduction/uci_calibration
+  --output-dir results/local/uci_calibration
 ```
 
 The calibration script records whether public or fallback synthetic data were
@@ -125,14 +124,14 @@ provenance test, not a reproduction of the source algorithm or model.
 Regenerate checked-in evidence from the released records:
 
 ```bash
-make v4-evidence PYTHON=.venv/bin/python
+make evidence PYTHON=.venv/bin/python
 ```
 
 Compile the public/blind main paper, electronic companion, and executive
 summary (requires `tectonic`):
 
 ```bash
-make v4-paper
+make paper
 ```
 
 Build the blind PDFs and a deterministic anonymous review supplement, then
@@ -140,15 +139,15 @@ scan its filenames, text sources, PDF text, and PDF metadata for identity
 tokens and local absolute paths:
 
 ```bash
-make v4-anonymous-package PYTHON=.venv/bin/python
+make anonymous PYTHON=.venv/bin/python
 ```
 
 The resulting archive is
-`output/anonymous/robust_mckp_v4_anonymous_supplement.zip`. It intentionally
+`papers/current/anonymous-supplement.zip`. It intentionally
 excludes public manuscript source, citation metadata, repository URLs, and
 package metadata that identify the author.
 
-The main source is `paper_versions/v4/main_v4.tex`; the small wrapper files
+The main source is `papers/current/main.tex`; the small wrapper files
 select the public/blind and main/companion variants.
 
 ## Interpretation limits

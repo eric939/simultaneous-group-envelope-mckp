@@ -6,7 +6,7 @@ version: "0.2.0"
 license: "MIT"
 repository-code: "https://github.com/eric939/robust_mckp"
 url: "https://github.com/eric939/robust_mckp"
-date-released: 2026-07-21
+date-released: 2026-08-01
 authors:
   - family-names: "Shao"
     given-names: "Eric"

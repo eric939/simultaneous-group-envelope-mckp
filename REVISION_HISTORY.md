@@ -6,9 +6,9 @@ project. The separate v3 manuscript, experiments, and history remain on the
 
 ## Version 4 — Current Manuscript
 
-Date: 2026-07-21.
+Date: 2026-08-01.
 
-The canonical source is `paper_versions/v4/main_v4.tex`. The focused
+The canonical source is `papers/current/main.tex`. The focused
 algorithmic contribution is simultaneous Lagrangian evaluation over the
 complete robust-MCKP threshold family using exactly-one group envelopes.
 
@@ -37,6 +37,25 @@ Durable contributions and boundaries:
   of application-derived coefficient scales. It is not transaction-level
   validation, causal demand estimation, or evidence of commercial pricing
   performance.
+
+## Independent Release Audit and Complete Rerun
+
+Date: 2026-08-01.
+
+- Preserved all binary64-distinct deviations in the exact threshold set after
+  an adversarial counterexample showed that tolerance clustering could remove
+  the only feasible breakpoint; added exact-search regressions for both bounds.
+- Aligned the adaptive lower-bound refresh policy across the envelope and
+  clique comparators.
+- Serialized the UCI application design and enforced and recorded five
+  single-thread environment controls before numerical work.
+- Reran the complete eight-phase fixed design and the separate exact-integer
+  audit. The certified August evidence is now the canonical `results/release/`;
+  the superseded July snapshot remains recoverable from Git history.
+- Added a claim-level literature evidence ledger, an independent theorem audit
+  record, durable repository rules, and a dated protocol-deviation record.
+- Regenerated the figure with embedded TrueType fonts, eliminating Type 3
+  fonts from the submission PDFs.
 
 ## Certified-Oracle and External-Evidence Audit
 

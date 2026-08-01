@@ -2,7 +2,7 @@
 
 Reference implementation and reproducibility artifact for **“Simultaneous
 Group-Envelope Bounds for Γ-Robust Multiple-Choice Knapsack Problems.”**
-Manuscript v4 (July 2026) is the canonical working paper. Version 3 is retained
+Manuscript v4 (August 2026) is the canonical working paper. Version 3 is retained
 as a separate paper and research program; v4 neither extends nor supersedes it.
 
 The v4 contribution is an all-threshold Lagrangian evaluation algorithm for
@@ -19,6 +19,9 @@ universally superior integer solver.
 
 ## Repository map
 
+Start with `papers/current/main.tex`. The `current` link always identifies the
+latest editable draft; today it points to `papers/v4/`.
+
 - `research/compressed_interval_oracle.py`: proposed group-envelope oracle.
 - `research/benchmark_instances.py`: neutral, deterministic v4 benchmark
   generator with an explicit v4 seed namespace.
@@ -34,10 +37,9 @@ universally superior integer solver.
 - `research/LITERATURE_NOVELTY_AUDIT_V4.md`: source-by-source novelty audit.
 - `tests/test_compressed_interval_oracle.py` and
   `tests/test_v4_publication_campaign.py`: v4 algebra and protocol tests.
-- `paper_versions/v4/`: canonical manuscript source and generated inputs.
-- `legacy/`: immutable V2/V3 paper and code archives, provenance records, and
-  SHA-256 checksums; these files are never cleanup candidates.
-- `results/v4_publication_20260721_certified_final/`: released instance-level results,
+- `papers/`: one clear home for V1--V4, the current-draft pointer, final PDFs,
+  historical source archives, provenance, and SHA-256 checksums.
+- `results/release/`: released instance-level results,
   raw timing repetitions, protocol, environments, summaries, and public-data
   calibration aggregates.
 - `src/robust_mckp/`: shared solver infrastructure used by the experiments.
@@ -46,11 +48,9 @@ The `v3` and `v4` branches are independent publication lines. The `v4` branch
 contains only the shared core and v4-specific research infrastructure; the
 v3-specific campaign, extensions, and manuscript remain on the `v3` branch.
 
-Submission-ready manuscript PDFs are checked in under `output/pdf/`; their
-source files and build instructions are listed in `SUBMISSION.md`.
-The recovered complete V3 paper is `output/pdf/robust_mckp_v3_full.pdf`; its
-original byte stream and recovery provenance are preserved under
-`legacy/v3/manuscript/original/`.
+Submission-ready manuscript PDFs are checked in under `papers/current/pdf/`;
+their source files and build instructions are listed in `SUBMISSION.md`. The
+complete V3 paper and its provenance live together under `papers/v3/`.
 
 ## Install and verify
 
@@ -59,17 +59,17 @@ python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install -U pip
 python3 -m pip install -e ".[experiments,validation,dev]"
-make v4-verify PYTHON=.venv/bin/python
+make verify PYTHON=.venv/bin/python
 ```
 
-`v4-verify` runs the test suite, checks every released evidence hash, regenerates
+`verify` runs the test suite, checks every released evidence hash, regenerates
 the manuscript tables/macros/figure in a temporary directory, and compares the
 generated text artifacts with the checked-in versions. It does not rerun the
 long timing campaign.
 
-Preview or remove ignored build debris and noncanonical result runs without
-touching V2/V3 legacy material, restored paper working copies, tracked v4
-evidence, Git branches, the virtual environment, or the raw-data cache:
+Preview or remove ignored build debris and local result runs without touching
+the versioned papers, `results/release`, Git branches, the virtual environment,
+or the raw-data cache:
 
 ```bash
 make clean-preview PYTHON=.venv/bin/python
@@ -79,7 +79,7 @@ make clean PYTHON=.venv/bin/python
 To rerun the complete fixed-design campaign and rebuild its paper artifacts:
 
 ```bash
-make v4-reproduce PYTHON=.venv/bin/python
+make reproduce PYTHON=.venv/bin/python
 ```
 
 The full command uses the released UCI-derived aggregate calibration, never the
@@ -91,18 +91,18 @@ data provenance, and separate manuscript-build command.
 - 40/40 algebraic, epigraph-LP, and complete-scan validation cases pass; the
   maximum scaled multiplier-certificate gap is below `1e-8`.
 - 60/60 primary instances reach scaled tolerance `1e-6`; the proposed method
-  wins 60/60 paired timings with geometric-mean speedup 2.333 (95% stratified
-  bootstrap interval [2.167, 2.517]).
+  wins 60/60 paired timings with geometric-mean speedup 2.330 (95% stratified
+  bootstrap interval [2.163, 2.514]).
 - All 36 robustness cases and all eight stress cases reach tolerance.
 - A nine-instance panel transformed from a published robust-knapsack archive
-  wins 9/9 timings, with geometric-mean speedup 2.320 (95% design-stratified
-  bootstrap interval [2.233, 2.404]). This is an out-of-generator coefficient
+  wins 9/9 timings, with geometric-mean speedup 2.311 (95% design-stratified
+  bootstrap interval [2.221, 2.398]). This is an out-of-generator coefficient
   test, not a replication of the source paper's uncertainty model.
 - The 200,000-record UCI-calibrated panel is application-derived and
   semi-synthetic; it tests coefficient scales rather than causal demand claims.
 - In the separate 12-instance exact audit, envelope and clique interval search
-  each certify 11 cases, while enumeration and compact SCIP certify all 12;
-  certified objectives agree within `1.14e-13`.
+  each certify 11 cases, complete enumeration certifies all 12, and compact
+  SCIP certifies 11; certified objectives agree within `1.14e-13`.
 
 These are instance-level paired results on the recorded single-threaded
 environment, not universal performance claims.

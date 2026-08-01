@@ -374,23 +374,28 @@ def _build_fixed_theta_cache(
     )
 
 
-def build_full_theta_candidates(instance: PricingInstance, tol: float = EPS) -> List[float]:
-    """Build the exact full finite theta candidate set from original options."""
+def build_full_theta_candidates(
+    instance: PricingInstance,
+    tol: float | None = None,
+) -> List[float]:
+    """Build the exact binary64-distinct theta set from original options.
 
-    vals = [0.0]
-    for group in instance.items:
-        for opt in group:
-            vals.append(abs(float(opt.uncertainty)))
-    vals.sort()
-    deduped: List[float] = []
-    for val in vals:
-        if not deduped or abs(val - deduped[-1]) > tol:
-            deduped.append(float(val))
-    if not deduped or abs(deduped[0]) > tol:
-        deduped.insert(0, 0.0)
-    else:
-        deduped[0] = 0.0
-    return deduped
+    ``tol`` is retained for API compatibility but intentionally does not merge
+    nearby deviations. Tolerance clustering can remove the only feasible
+    breakpoint and is therefore unsafe for an exact finite-union solver.
+    """
+
+    del tol
+    return sorted(
+        {
+            0.0,
+            *(
+                abs(float(opt.uncertainty))
+                for group in instance.items
+                for opt in group
+            ),
+        }
+    )
 
 
 def compute_fixed_theta_lp_upper_bound(

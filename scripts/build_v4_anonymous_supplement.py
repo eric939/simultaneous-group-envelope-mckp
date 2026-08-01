@@ -25,6 +25,13 @@ IDENTITY_TERMS = (
 )
 IDENTITY = re.compile(rb"(?:" + b"|".join(IDENTITY_TERMS) + rb")", re.IGNORECASE)
 TEXT_SUFFIXES = {".csv", ".json", ".md", ".py", ".tex", ".txt"}
+PUBLIC_ONLY_SOURCE_FILES = {
+    "CITATION.cff",
+    "SUBMISSION.md",
+    "papers/v4/cover-letter.md",
+    "papers/v4/main.tex",
+    "pyproject.toml",
+}
 
 
 README = """# Anonymous v4 review supplement
@@ -41,8 +48,8 @@ source .venv/bin/activate
 python -m pip install -r requirements-anonymous.txt
 PYTHONPATH=src python -m pytest -q
 PYTHONPATH=src python scripts/verify_v4_release.py \
-  --results results/v4_publication_20260721_certified_final \
-  --paper paper_versions/v4
+  --results results/release \
+  --paper papers/v4
 ```
 
 The archive-specific evidence manifest excludes only public package metadata
@@ -88,25 +95,25 @@ def main() -> None:
     parser.add_argument(
         "--results",
         type=Path,
-        default=ROOT / "results" / "v4_publication_20260721_certified_final",
+        default=ROOT / "results" / "release",
     )
-    parser.add_argument("--paper", type=Path, default=ROOT / "paper_versions" / "v4")
+    parser.add_argument("--paper", type=Path, default=ROOT / "papers" / "v4")
     parser.add_argument(
         "--output",
         type=Path,
-        default=ROOT / "output" / "anonymous" / "robust_mckp_v4_anonymous_supplement.zip",
+        default=ROOT / "papers" / "v4" / "anonymous-supplement.zip",
     )
     args = parser.parse_args()
     results = args.results.resolve()
     paper = args.paper.resolve()
     output = args.output.resolve()
 
-    manifest_path = paper / "auto" / "v4_evidence_manifest.json"
+    manifest_path = paper / "generated" / "evidence-manifest.json"
     public_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     payloads: dict[str, bytes] = {}
 
     for relative in sorted(public_manifest["source_files"]):
-        if relative == "pyproject.toml":
+        if relative in PUBLIC_ONLY_SOURCE_FILES:
             continue
         add_file(payloads, ROOT / relative)
     add_file(payloads, ROOT / "LICENSE")
@@ -117,13 +124,16 @@ def main() -> None:
             add_file(payloads, path, relative.as_posix())
 
     for relative in public_manifest["generated"]:
-        add_file(payloads, paper / relative, (Path("paper_versions/v4") / relative).as_posix())
+        add_file(payloads, paper / relative, (Path("papers/v4") / relative).as_posix())
 
-    for name in ("main_v4_opre_blind.pdf", "main_v4_ec_blind.pdf"):
+    for name, archive_name in (
+        ("journal-blind.pdf", "papers/v4/pdf/paper-blind.pdf"),
+        ("companion-blind.pdf", "papers/v4/pdf/companion-blind.pdf"),
+    ):
         path = paper / name
         if not path.is_file():
             raise SystemExit(f"ANONYMOUS PACKAGE: FAIL: missing blind PDF {path}")
-        add_file(payloads, path, (Path("paper_versions/v4") / name).as_posix())
+        add_file(payloads, path, archive_name)
         scan_payload(name, pdf_searchable_bytes(path))
 
     anonymous_manifest = dict(public_manifest)
@@ -132,9 +142,9 @@ def main() -> None:
     anonymous_manifest["source_files"] = {
         name: digest
         for name, digest in public_manifest["source_files"].items()
-        if name != "pyproject.toml"
+        if name not in PUBLIC_ONLY_SOURCE_FILES
     }
-    manifest_name = "paper_versions/v4/auto/v4_evidence_manifest.json"
+    manifest_name = "papers/v4/generated/evidence-manifest.json"
     payloads[manifest_name] = (
         json.dumps(anonymous_manifest, indent=2, sort_keys=True).rstrip() + "\n"
     ).encode("utf-8")

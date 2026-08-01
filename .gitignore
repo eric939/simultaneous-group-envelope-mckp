@@ -1,109 +1,34 @@
+# Local environment and caches
 .DS_Store
+**/.DS_Store
 .venv/
 .pytest_cache/
-tmp/
-paper/
-paper_current/
-paper_notes/
-paper_versions/
-results/
-review_bundles/
-submission_packages/
-submission_ready/
-output/
-data_cache/
-docs_archive/
-src/*.egg-info/
-
-MASTER.md
-PROGRAM.md
-/*.txt
-
 __pycache__/
 **/__pycache__/
 *.pyc
-*.log
+*.egg-info/
+data_cache/
+tmp/
+
+# Local experiment reruns. The complete certified release is tracked.
+results/*
+!results/release/
+!results/release/**
+
+# LaTeX build debris. Final PDFs live in papers/v4/pdf/.
 *.aux
+*.log
 *.out
 *.toc
-*.zip
-*.pdf
-*.png
-*.jpg
-*.jpeg
-*.csv
-*.xlsx
-*.pkl
-*.pickle
-*.npy
-*.npz
+*.xdv
+*.synctex.gz
+papers/v4/*.pdf
 
-*_report.txt
-*_checklist.txt
-*_manifest.txt
-*_metadata.txt
-*_draft.txt
-*_plan.txt
-*_strategy.txt
-*_audit.txt
-*_map.txt
+# Deprecated pre-cleanup locations should not reappear.
+legacy/
+output/
+paper_versions/
 
-scripts/audit_v2_claims_against_results.py
-scripts/check_reported_numbers.py
-scripts/create_*package*.py
-scripts/create_final_*bundle.py
-scripts/create_submission_gate_packages.py
-scripts/plot_journal_composite_figures.py
-scripts/* 2.py
-
-# Public v4 research artifact. Keep earlier manuscript/result snapshots local,
-# but expose the canonical source, generated evidence inputs, and final records.
-!paper_versions/
-paper_versions/*
-!paper_versions/v4/
-paper_versions/v4/*
-!paper_versions/v4/README.md
-!paper_versions/v4/cover_letter_opre.md
-!paper_versions/v4/*.tex
-!paper_versions/v4/auto/
-paper_versions/v4/auto/*
-!paper_versions/v4/auto/v4_publication_numbers.tex
-!paper_versions/v4/auto/v4_evidence_manifest.json
-!paper_versions/v4/tables/
-paper_versions/v4/tables/*
-!paper_versions/v4/tables/v4_kernel_publication.tex
-!paper_versions/v4/tables/v4_primary_publication.tex
-!paper_versions/v4/tables/v4_robustness_publication.tex
-!paper_versions/v4/tables/v4_stress_publication.tex
-!paper_versions/v4/tables/v4_external_publication.tex
-!paper_versions/v4/figures/
-paper_versions/v4/figures/*
-!paper_versions/v4/figures/v4_speedup_scaling.pdf
-!paper_versions/v4/figures/v4_speedup_scaling.png
-
-!results/
-results/*
-!results/v4_publication_20260721_certified_final/
-!results/v4_publication_20260721_certified_final/**
-
-# Submission-ready v4 PDFs referenced by the repository documentation.
-!output/
-output/*
-!output/pdf/
-output/pdf/*
-!output/pdf/robust_mckp_v4_full.pdf
-!output/pdf/robust_mckp_v4_opre.pdf
-!output/pdf/robust_mckp_v4_opre_blind.pdf
-!output/pdf/robust_mckp_v4_electronic_companion.pdf
-!output/pdf/robust_mckp_v4_electronic_companion_blind.pdf
-!output/pdf/robust_mckp_v4_executive_summary.pdf
-!output/pdf/robust_mckp_v3_full.pdf
-!output/pdf/robust_mckp_v3_legacy_reconstruction.pdf
-
-# Immutable legacy archives. These exceptions deliberately override the
-# repository-wide PDF ignore rule so archived papers and figures stay tracked.
-!legacy/
-!legacy/**
-
-# Finder metadata must remain ignored even after the broad legacy exception.
-**/.DS_Store
+# Editor and scratch files
+*~
+*.swp
