@@ -49,7 +49,9 @@
     "generated/table-stress.tex",
     "generated/table-external.tex",
     "generated/speedup-scaling.pdf",
-    "generated/speedup-scaling.png"
+    "generated/speedup-scaling.png",
+    "generated/common-trace-comparator.pdf",
+    "generated/common-trace-comparator.png"
   ],
   "results_directory": "results/release",
   "source_files": {
@@ -69,7 +71,7 @@
     "papers/v4/executive-summary.tex": "616ac940e526e7af5071a2f9cb38ad0b8fdd4211d1d6df98020008535e24ec51",
     "papers/v4/journal-blind.tex": "509ce90cfdb22ada8aa0eaa863e3d43b7a316327505256817bbaa24fac34e7f0",
     "papers/v4/journal.tex": "d8ef3e7f980a06f6049dd293f77281a914fb6b87b090863b1b3f8c1406ef92e0",
-    "papers/v4/main.tex": "cbc06e8701942b6941d45219c08384545ecac7e44cec42abcc552f5aa6ec9879",
+    "papers/v4/main.tex": "32a24712f02b8c65234ec618d034b6184de17c0dbf1883a8c3c013bb2ed37608",
     "protocol/deviations.md": "dd98822139a8d5681cff39c53762b755ee002c49d2cdf1aa8d6436c5a980fb2e",
     "protocol/release-20260801.md": "51b4fb5915187829268671ccefdc1428e4e55299bc325fe5114aea587d9f65c3",
     "pyproject.toml": "e4b6057fa10dd4caf390a1e3818841118fc71043e35e2f82a6ea95939e2ea382",
@@ -81,7 +83,7 @@
     "research/bound_dominance.py": "2c175924c25dd80a73b73ee068e65af0e2ea88f4040d7513998d3ee315e81413",
     "research/compressed_interval_oracle.py": "6dbf704fa4314f6ff67f663440666eb00bb7732baaf1d25bb5be737f44e3462d",
     "research/exact_integration_campaign.py": "4cb77d373451021b560229544c3e6d06fc67f390d60f25bc517a18e9638eb37e",
-    "research/generate_v4_publication_artifacts.py": "637a65a68949871958d7d66fa531c822174fe2979e4f0eda2afd6124716d266d",
+    "research/generate_v4_publication_artifacts.py": "707cf93a15d09e3259a7b4a699632e6a1011168977284c31a19febb08768e35e",
     "research/integrated_exact_solver.py": "5d4e10ab381bdeaea1b96ca3bb50933b5fdfb1d2c5b87d0627b831334d5974fe",
     "research/novelty_go_no_go.py": "3f19734942eba4dec173c84d41fa5c7e771e8922c5ea66d0c7a9ac5f1996a8d7",
     "research/structural_feasibility_study.py": "220304e29b6c695f2312de0ff2286a36ba447f1403546c94899b2d6c7122f2a3",

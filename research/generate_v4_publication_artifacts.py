@@ -439,7 +439,102 @@ def speedup_figure(
     end_ax.grid(axis="y", which="both", color="0.88", linewidth=0.6)
     end_ax.legend(ncol=2, frameon=False, fontsize=6.7, loc="upper left")
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, bbox_inches="tight")
+    fig.savefig(
+        path,
+        bbox_inches="tight",
+        metadata={"CreationDate": None, "ModDate": None},
+    )
+    fig.savefig(path.with_suffix(".png"), dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+
+def common_trace_figure(rows: list[dict[str, str]], path: Path) -> None:
+    """Plot every matched-trace oracle speedup without adaptive-search effects."""
+    families = ["dense_frontier", "correlated_risk", "near_tie", "many_breakpoints"]
+    labels = {
+        "dense_frontier": "Dense frontier",
+        "correlated_risk": "Correlated risk",
+        "near_tie": "Near tie",
+        "many_breakpoints": "Many breakpoints",
+    }
+    colors = {
+        "dense_frontier": "#0072B2",
+        "correlated_risk": "#D55E00",
+        "near_tie": "#009E73",
+        "many_breakpoints": "#CC79A7",
+    }
+    fig, ax = plt.subplots(figsize=(6.9, 2.55), constrained_layout=True)
+
+    for index, family in enumerate(families):
+        base = len(families) - index - 1
+        speedups = sorted(float(row["speedup"]) for row in rows if row["family"] == family)
+        offsets = (
+            [-0.17 + 0.34 * item / (len(speedups) - 1) for item in range(len(speedups))]
+            if len(speedups) > 1
+            else [0.0]
+        )
+        ax.scatter(
+            speedups,
+            [base + offset for offset in offsets],
+            s=34,
+            color=colors[family],
+            edgecolors="0.2",
+            linewidths=0.45,
+            zorder=3,
+        )
+        ax.scatter(
+            [geometric_mean(speedups)],
+            [base],
+            s=58,
+            marker="D",
+            color=colors[family],
+            edgecolors="black",
+            linewidths=0.85,
+            zorder=4,
+        )
+
+    overall = geometric_mean(float(row["speedup"]) for row in rows)
+    ax.axvline(1.0, color="0.45", linewidth=1.0, linestyle=":", zorder=1)
+    ax.axvline(overall, color="black", linewidth=1.05, linestyle="--", zorder=1)
+    ax.text(1.04, 3.40, "parity", color="0.35", fontsize=7.2, va="center")
+    ax.text(
+        overall + 0.06,
+        3.40,
+        rf"overall GM {overall:.2f}$\times$",
+        color="black",
+        fontsize=7.2,
+        va="center",
+    )
+    ax.set_xlim(0.85, 5.55)
+    ax.set_ylim(-0.42, 3.55)
+    ax.set_xticks([1, 2, 3, 4, 5])
+    ax.set_yticks(range(3, -1, -1), [labels[family] for family in families])
+    ax.set_xlabel("Envelope-oracle speedup over clique LP")
+    ax.grid(axis="x", color="0.88", linewidth=0.65)
+    ax.tick_params(axis="y", length=0)
+    for side in ("top", "right", "left"):
+        ax.spines[side].set_visible(False)
+
+    instance_handle = ax.scatter(
+        [], [], s=32, color="0.55", edgecolors="0.2", linewidths=0.45
+    )
+    family_mean_handle = ax.scatter(
+        [], [], s=52, marker="D", color="0.55", edgecolors="black", linewidths=0.85
+    )
+    ax.legend(
+        [instance_handle, family_mean_handle],
+        ["Instance", "Family geometric mean"],
+        frameon=False,
+        fontsize=7.2,
+        ncol=2,
+        loc="lower right",
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(
+        path,
+        bbox_inches="tight",
+        metadata={"CreationDate": None, "ModDate": None},
+    )
     fig.savefig(path.with_suffix(".png"), dpi=220, bbox_inches="tight")
     plt.close(fig)
 
@@ -455,6 +550,7 @@ def main() -> None:
     primary = read_csv(results / "primary.csv")
     robustness = read_csv(results / "robustness.csv")
     kernel = read_csv(results / "kernel.csv")
+    common_trace = read_csv(results / "common_trace.csv")
     stress = read_csv(results / "stress.csv")
     external = read_csv(results / "external_knapsack.csv")
     generated = paper / "generated"
@@ -465,6 +561,7 @@ def main() -> None:
     write(generated / "table-stress.tex", stress_table(stress))
     write(generated / "table-external.tex", external_table(external))
     speedup_figure(primary, stress, kernel, generated / "speedup-scaling.pdf")
+    common_trace_figure(common_trace, generated / "common-trace-comparator.pdf")
 
     evidence_files = sorted(results.rglob("*.csv")) + sorted(results.rglob("*.json"))
     manifest = {
@@ -482,6 +579,8 @@ def main() -> None:
             "generated/table-external.tex",
             "generated/speedup-scaling.pdf",
             "generated/speedup-scaling.png",
+            "generated/common-trace-comparator.pdf",
+            "generated/common-trace-comparator.png",
         ],
     }
     write(generated / "evidence-manifest.json", json.dumps(manifest, indent=2, sort_keys=True))
