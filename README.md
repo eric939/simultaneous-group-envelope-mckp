@@ -3,7 +3,11 @@
 Reference implementation and reproducibility artifact for **“Simultaneous
 Group-Envelope Bounds for Γ-Robust Multiple-Choice Knapsack Problems.”**
 Manuscript v4 (August 2026) is the canonical working paper. Version 3 is retained
-as a separate paper and research program; v4 neither extends nor supersedes it.
+as provenance for a separate paper and research program; v4 neither replaces
+nor supersedes it. That Paper A line now has its own repository,
+[`eric939/robust_pricing_mckp`](https://github.com/eric939/robust_pricing_mckp),
+where arXiv:2603.18653v2 is being prepared. This repository is Paper B and will
+receive a new arXiv identifier.
 
 The v4 contribution is an all-threshold Lagrangian evaluation algorithm for
 exactly-one groups. For `K` options and `B` robust-deviation thresholds, it
@@ -21,6 +25,9 @@ universally superior integer solver.
 
 Start with `papers/current/main.tex`. The `current` link always identifies the
 latest editable draft; today it points to `papers/v4/`.
+
+See `PROJECTS.md` for the formal Paper A/Paper B contribution boundary,
+repository ownership, citation order, and release sequence.
 
 - `research/compressed_interval_oracle.py`: proposed group-envelope oracle.
 - `research/benchmark_instances.py`: neutral, deterministic v4 benchmark
