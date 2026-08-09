@@ -60,6 +60,10 @@ Date: 2026-08-09.
   URL in `README.md`. The builder now treats that file as public-only package
   metadata and continues to supply its purpose-built anonymous README; the
   strict identity scan remains unchanged for every included source and PDF.
+- Renamed the public projects and local worktrees to make their contribution
+  boundary visible at a glance: Paper A is `certifying-robust-pricing-mckp` and
+  Paper B is `simultaneous-group-envelope-mckp`. The internal Python import
+  package remains `robust_mckp` for API compatibility.
 
 ## Independent Release Audit and Complete Rerun
 

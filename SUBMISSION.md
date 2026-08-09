@@ -52,7 +52,7 @@ or `CITATION.cff` in an anonymous submission.
 
 ## Public GitHub artifact
 
-Repository: <https://github.com/eric939/robust_mckp>
+Repository: <https://github.com/eric939/simultaneous-group-envelope-mckp>
 
 The v4 branch/package must expose:
 

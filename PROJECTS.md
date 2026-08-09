@@ -5,7 +5,7 @@ Gamma-Robust Multiple-Choice Knapsack Problems*. It will be submitted to arXiv
 under a new identifier.
 
 The separate repository
-[`eric939/robust_pricing_mckp`](https://github.com/eric939/robust_pricing_mckp)
+[`eric939/certifying-robust-pricing-mckp`](https://github.com/eric939/certifying-robust-pricing-mckp)
 is **Paper A**, the continuation of arXiv:2603.18653. Paper A has been revised
 and frozen as version 2 before Paper B is submitted. Its definitive title is
 *A Certifying MCKP Framework for Gamma-Robust Discrete Pricing*, and its public
@@ -28,7 +28,7 @@ do not belong to Paper A.
 
 ## Repository ownership
 
-| Asset | Paper A: `robust_pricing_mckp` | Paper B: `robust_mckp` |
+| Asset | Paper A: `certifying-robust-pricing-mckp` | Paper B: `simultaneous-group-envelope-mckp` |
 | --- | --- | --- |
 | arXiv record | 2603.18653v2 | new identifier |
 | Primary application | finite-menu robust pricing | robust MCKP LP-family certification |
@@ -44,7 +44,7 @@ release.
 
 ## Release sequence
 
-1. Finish and verify Paper A in `robust_pricing_mckp`. **Complete.**
+1. Finish and verify Paper A in `certifying-robust-pricing-mckp`. **Complete.**
 2. Submit and freeze arXiv:2603.18653v2. **Verified source package ready; arXiv
    account submission pending.**
 3. Update Paper B's citation and relationship wording to the frozen Paper A
