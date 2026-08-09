@@ -8,9 +8,12 @@ The separate repository
 [`eric939/certifying-robust-pricing-mckp`](https://github.com/eric939/certifying-robust-pricing-mckp)
 is **Paper A**, the continuation of arXiv:2603.18653. Paper A has been revised
 and frozen as version 2 before Paper B is submitted. Its definitive title is
-*A Certifying MCKP Framework for Gamma-Robust Discrete Pricing*, and its public
-repository is frozen on `main` at merge commit
-`924fed52f5c8a2cd995e7102c3f42655c91e06f6`.
+*A Certifying MCKP Framework for Gamma-Robust Discrete Pricing*. Its submitted
+manuscript source is frozen locally at commit
+`5cf4d20eeec3341df01ef802fe3c6bb68f02d48b` (arXiv replacement
+`submit/7928087`). Its public reviewer-facing software repository is
+deliberately code-only and is frozen at release `v1.0.1`, commit
+`85f87d529fa419bda03249783aa601847bc36ad5`.
 
 ## Relationship
 
@@ -45,8 +48,8 @@ release.
 ## Release sequence
 
 1. Finish and verify Paper A in `certifying-robust-pricing-mckp`. **Complete.**
-2. Submit and freeze arXiv:2603.18653v2. **Verified source package ready; arXiv
-   account submission pending.**
+2. Submit and freeze arXiv:2603.18653v2. **Complete: replacement submission
+   `submit/7928087` received and scheduled for announcement.**
 3. Update Paper B's citation and relationship wording to the frozen Paper A
    metadata. **Complete in the current working branch.**
 4. Verify every Paper B variant, anonymous supplement, and release manifest.

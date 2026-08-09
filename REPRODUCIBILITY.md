@@ -1,21 +1,25 @@
 # Reproducibility Guide
 
 **Canonical paper and evidence:** v4, August 2026. The manuscript source is
-`papers/current/`; the released result directory is `results/release/`.
+`papers/current/`; the canonical released result directory is
+`results/release/2026-08-09-paper-b-final-r4/`.
 
 ## Environment
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -U pip
-python3 -m pip install -e ".[experiments,validation,dev]"
+uv sync --frozen --extra experiments --extra validation --extra dev
 ```
 
-The released campaign used Python 3.14.2, NumPy 2.4.4, SciPy 1.17.1 with
-HiGHS 1.14.0, and one Apple M4 thread. Phase-specific machine and dependency
+The R4 campaign uses Python 3.14.2, NumPy 2.5.1, SciPy 1.18.0 with
+HiGHS 1.12.0, and one Apple M4 thread. Phase-specific machine and dependency
 records are released as `environment_*.json`. The solver methods in the main
-comparison both use the same SciPy/HiGHS fixed-threshold LP routine.
+comparison both use the same SciPy/HiGHS fixed-threshold LP routine. The
+campaign dependency graph is installed from the checked-in `uv.lock` with
+`uv sync --frozen`; the anonymous
+supplement also contains a minimal review-environment requirements file.
+The implementation validates that the sum of per-group objective minima and
+the sum of per-group objective maxima both lie in the finite binary64 range;
+rescale objective coefficients if this explicit precondition fails.
 
 ## Verify the released artifact
 
@@ -40,7 +44,8 @@ hash-verified CSVs.
 
 ## Serialized experimental design
 
-The protocol is serialized in `results/release/protocol.json`.
+The protocol is serialized in
+`results/release/2026-08-09-paper-b-final-r4/protocol.json`.
 Its SHA-256 is recorded before each phase. The complete certified campaign was
 run after the algorithmic and reporting protocol had been finalized; it is a
 reproducible fixed design, not a preregistered study. The statistical unit is an instance;
@@ -84,12 +89,12 @@ make reproduce PYTHON=.venv/bin/python
 
 This command runs tests, executes every serialized phase in order, and generates a
 fresh set of paper macros, tables, and figures under
-`tmp/v4_reproduction_paper/`. Fresh timing results are written to
+`tmp/reproduction-paper/`. Fresh timing results are written to
 `results/local/`; released results are never overwritten. Override these
 locations with `LOCAL_RESULTS=...` and `LOCAL_PAPER=...`.
 
 The application phase uses the released UCI-derived aggregates in
-`results/release/uci_calibration/`. Raw UCI transactions
+`results/release/2026-08-09-paper-b-final-r4/uci_calibration/`. Raw UCI transactions
 are not redistributed. To rebuild those aggregates from the source data,
 download the UCI Online Retail CSV, place it in a local cache directory, and
 run:
@@ -104,7 +109,10 @@ run:
 
 The calibration script records whether public or fallback synthetic data were
 used. A reproduction of the reported UCI-calibrated panel must show
-`public_data_used: True` in its source report. The public data are used only to
+`public_data_used: True` in its source report. The copied calibration
+configuration retains its original July working-output path as immutable
+provenance; the containing August dated release and its manifest are canonical.
+The public data are used only to
 calibrate aggregate price, volume, segment, and uncertainty scales; elasticity
 curves and generated choice menus remain modeled. The reported calibration uses
 the first 200,000 source rows rather than a random or full-data sample; this is
@@ -155,10 +163,12 @@ select the public/blind and main/companion variants.
 The released evidence supports algebraic correctness, certified minimization
 of the deployed finite convex multiplier problem, valid LP-family
 certification, formal objective-bound dominance up to the reported numerical
-gap over the bounded-threshold group-clique LP, and a paired certificate-time advantage over its sparse
-implementation on the tested designs. The separate exact audit does not
-establish universal solver dominance or integer-solver superiority. The
-published-coefficient panel reduces dependence on the internal generator but
-is not a direct algorithm comparison. The UCI
-panel is application-derived and semi-synthetic, not a causal demand estimate
-or transaction-level pricing validation.
+gap over the bounded-threshold group-clique LP, and a paired certificate-time
+advantage over its sparse implementation in the primary, stress, and
+published-coefficient designs. The sparse-budget panel is mixed, and the UCI
+panel is a recorded timing reversal under aggressive threshold elimination.
+The separate exact audit does not establish universal solver dominance or
+integer-solver superiority. The published-coefficient panel reduces dependence
+on the internal generator but does not reproduce the source paper's uncertainty
+model. The UCI panel is application-derived and semi-synthetic, not a causal
+demand estimate or transaction-level pricing validation.

@@ -1,0 +1,14 @@
+{
+  "gates": {
+    "certificate": true,
+    "certificate_tolerance": true,
+    "identity": true,
+    "validity": true
+  },
+  "instances": 40,
+  "maximum_absolute_error": 6.580910394404782e-08,
+  "maximum_certificate_violation": 3.979039320256561e-13,
+  "maximum_scaled_certificate_gap": 9.916136555836835e-09,
+  "minimum_validity_slack": 4.263256414560601e-14,
+  "pass": true
+}

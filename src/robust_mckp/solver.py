@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from .certificate import compute_certificate
+from .certificate import certificate_is_feasible, compute_certificate
 from .greedy import greedy_lp
 from .hull import Hull, build_upper_hull
 from .model import PricingInstance, Solution
@@ -137,7 +137,7 @@ def _round_down_value(lp_sol, hulls: List[Hull]) -> float:
 
     value = 0.0
     for pos, hull in zip(lp_sol.positions, hulls):
-        vertex_idx = pos.upper_vertex if pos.lambda_ >= 1.0 - EPS else pos.lower_vertex
+        vertex_idx = pos.upper_vertex if pos.lambda_ >= 1.0 else pos.lower_vertex
         value += float(hull.values[int(vertex_idx)])
     return float(value)
 
@@ -290,7 +290,7 @@ def _advance_events_to_theta(
     n = len(states)
     touched_items: List[int] = []
 
-    while event_ptr < event_values.size and event_values[event_ptr] <= theta + EPS:
+    while event_ptr < event_values.size and event_values[event_ptr] <= theta:
         i = int(event_items[event_ptr])
         j = int(event_options[event_ptr])
         state = states[i]
@@ -486,7 +486,7 @@ def solve(instance: PricingInstance, *, upgrade_completion: bool = True) -> Solu
         selections = [int(hulls[i].option_indices[idx]) for i, idx in enumerate(discrete.vertices)]
 
         cert = compute_certificate(instance, selections)
-        if cert < -EPS:
+        if not certificate_is_feasible(instance, selections):
             theta_cert_infeasible += 1
             continue
 
@@ -570,7 +570,7 @@ def _solve_naive_reference(instance: PricingInstance, *, upgrade_completion: boo
 
         selections = [int(hulls[i].option_indices[idx]) for i, idx in enumerate(discrete.vertices)]
         cert = compute_certificate(instance, selections)
-        if cert < -EPS:
+        if not certificate_is_feasible(instance, selections):
             continue
 
         objective = float(sum(v_list[i][sel] for i, sel in enumerate(selections)))

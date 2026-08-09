@@ -314,6 +314,7 @@ def initialize_output(output_dir: Path, command: str) -> None:
         "scipy": scipy.__version__,
         "platform": platform.platform(),
         "processor": platform.processor(),
+        "machine": platform.machine(),
         "thread_environment": {
             key: os.environ.get(key)
             for key in (
@@ -586,10 +587,6 @@ def _compressed_storage_bytes(oracle: CompressedThetaIntervalOracle) -> int:
     arrays = [
         oracle.thetas,
         oracle.capacities,
-        oracle._sorted_values,
-        oracle._sorted_margins,
-        oracle._sorted_deviations,
-        oracle._sorted_eligible,
         oracle._group_sizes,
         oracle._segment_lo,
         oracle._segment_hi,
@@ -600,6 +597,9 @@ def _compressed_storage_bytes(oracle: CompressedThetaIntervalOracle) -> int:
         *oracle.values,
         *oracle.margins,
         *oracle.deviations,
+        *oracle._sorted_values,
+        *oracle._sorted_margins,
+        *oracle._sorted_deviations,
     ]
     return int(sum(array.nbytes for array in arrays))
 

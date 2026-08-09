@@ -10,7 +10,8 @@ This is the only editable manuscript version. `papers/current` points here.
 - `executive-summary.tex`: one-page summary.
 - `cover-letter.md`: submission cover letter.
 
-Do not hand-edit `generated/`; it is rebuilt from `results/release`.
+Do not hand-edit `generated/`; it is rebuilt from the canonical dated directory
+`results/release/2026-08-09-paper-b-final-r4`.
 
 ## Ready-to-use files
 

@@ -32,7 +32,7 @@ def _discrete_value_cost(vertices: List[int], hulls: List[Hull]) -> Tuple[float,
 def _round_positions(lp: LPSolution, hulls: List[Hull]) -> List[int]:
     vertices: List[int] = []
     for pos, hull in zip(lp.positions, hulls):
-        if pos.lambda_ >= 1.0 - EPS:
+        if pos.lambda_ >= 1.0:
             vertices.append(pos.upper_vertex)
         else:
             vertices.append(pos.lower_vertex)
@@ -41,7 +41,7 @@ def _round_positions(lp: LPSolution, hulls: List[Hull]) -> List[int]:
 
 def _find_fractional_item(lp: LPSolution) -> Optional[int]:
     for i, pos in enumerate(lp.positions):
-        if pos.lambda_ > EPS and pos.lambda_ < 1.0 - EPS:
+        if 0.0 < pos.lambda_ < 1.0:
             return i
     return None
 
@@ -53,11 +53,11 @@ def _repair(
     exclude_item: Optional[int] = None,
 ) -> Optional[DiscreteSolution]:
     value, cost = _discrete_value_cost(vertices, hulls)
-    if cost <= capacity + EPS:
+    if cost <= capacity:
         return DiscreteSolution(vertices=vertices, cost=cost, value=value)
 
     n = len(vertices)
-    while cost > capacity + EPS:
+    while cost > capacity:
         best_item = None
         best_ratio = np.inf
         for i in range(n):
@@ -69,7 +69,7 @@ def _repair(
             hull = hulls[i]
             dc = float(hull.costs[idx] - hull.costs[idx - 1])
             dv = float(hull.values[idx] - hull.values[idx - 1])
-            if dc <= EPS:
+            if dc <= 0.0:
                 continue
             ratio = dv / dc
             if ratio < best_ratio - EPS:
@@ -93,11 +93,11 @@ def _repair(
 def _upgrade_completion(vertices: List[int], hulls: List[Hull], capacity: float) -> DiscreteSolution:
     value, cost = _discrete_value_cost(vertices, hulls)
     residual = capacity - cost
-    if residual <= EPS:
+    if residual <= 0.0:
         return DiscreteSolution(vertices=vertices, cost=cost, value=value)
 
     n = len(vertices)
-    while residual > EPS:
+    while residual > 0.0:
         best_item = None
         best_ratio = -np.inf
         best_dc = 0.0
@@ -109,7 +109,7 @@ def _upgrade_completion(vertices: List[int], hulls: List[Hull], capacity: float)
                 continue
             dc = float(hull.costs[idx + 1] - hull.costs[idx])
             dv = float(hull.values[idx + 1] - hull.values[idx])
-            if dc <= EPS or dc > residual + EPS:
+            if dc <= 0.0 or dc > residual:
                 continue
             ratio = dv / dc
             if ratio > best_ratio + EPS:

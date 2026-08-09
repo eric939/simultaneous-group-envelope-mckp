@@ -28,6 +28,7 @@ import sys
 import time
 from dataclasses import dataclass
 from fractions import Fraction
+from functools import cmp_to_key
 from math import gcd
 from pathlib import Path
 from typing import Optional, Sequence
@@ -43,9 +44,11 @@ for path in (ROOT, SRC):
         sys.path.insert(0, str(path))
 
 from robust_mckp import Option, PricingInstance  # noqa: E402
-from robust_mckp.certificate import compute_certificate  # noqa: E402
+from robust_mckp.certificate import certificate_is_feasible, compute_certificate  # noqa: E402
 from robust_mckp.hull import build_upper_hull  # noqa: E402
 from robust_mckp.exact_bnb import (  # noqa: E402
+    _require_representable_objective_range,
+    build_fixed_theta_data,
     build_full_theta_candidates,
     compute_fixed_theta_lp_upper_bound,
 )
@@ -81,7 +84,15 @@ class FixedThetaLPOracle:
     path does not perform a redundant pairwise integer-dominance pass.
     """
 
-    def __init__(self, instance: PricingInstance, tol: float = 1e-9):
+    def __init__(
+        self,
+        instance: PricingInstance,
+        tol: float = 1e-9,
+        *,
+        objective_range_validated: bool = False,
+    ):
+        if not objective_range_validated:
+            _require_representable_objective_range(instance)
         self.instance = instance
         self.tol = float(tol)
         self.values = [
@@ -97,41 +108,176 @@ class FixedThetaLPOracle:
             for group in instance.items
         ]
         self.option_indices = [np.arange(len(group), dtype=int) for group in instance.items]
+        self._value_exponent = max(
+            float(value).as_integer_ratio()[1].bit_length() - 1
+            for values in self.values
+            for value in values
+        )
+        self._coefficient_exponent = max(
+            [
+                *(
+                    float(value).as_integer_ratio()[1].bit_length() - 1
+                    for values in self.margins
+                    for value in values
+                ),
+                *(
+                    float(value).as_integer_ratio()[1].bit_length() - 1
+                    for values in self.deviations
+                    for value in values
+                ),
+            ]
+        )
+
+        def scaled(value: float, exponent: int) -> int:
+            numerator, denominator = float(value).as_integer_ratio()
+            local_exponent = denominator.bit_length() - 1
+            return numerator << (exponent - local_exponent)
+
+        self._exact_value_integers = [
+            [scaled(float(value), self._value_exponent) for value in values]
+            for values in self.values
+        ]
+        self._exact_margin_integers = [
+            [scaled(float(value), self._coefficient_exponent) for value in values]
+            for values in self.margins
+        ]
+        self._exact_deviation_integers = [
+            [scaled(float(value), self._coefficient_exponent) for value in values]
+            for values in self.deviations
+        ]
+
+    @staticmethod
+    def _exact_upper_hull(
+        costs: Sequence[int], values: Sequence[int]
+    ) -> list[int]:
+        """Return exact upper-hull option indices in increasing-cost order."""
+
+        best_at_cost: dict[int, int] = {}
+        for index, cost in enumerate(costs):
+            incumbent = best_at_cost.get(int(cost))
+            if incumbent is None or values[index] > values[incumbent]:
+                best_at_cost[int(cost)] = index
+        ordered = [best_at_cost[cost] for cost in sorted(best_at_cost)]
+        nondominated: list[int] = []
+        best_value: int | None = None
+        for index in ordered:
+            if best_value is None or values[index] > best_value:
+                nondominated.append(index)
+                best_value = values[index]
+        hull: list[int] = []
+        for index in nondominated:
+            while len(hull) >= 2:
+                left, middle = hull[-2], hull[-1]
+                left_value = values[middle] - values[left]
+                left_cost = int(costs[middle]) - int(costs[left])
+                right_value = values[index] - values[middle]
+                right_cost = int(costs[index]) - int(costs[middle])
+                if left_value * right_cost > right_value * left_cost:
+                    break
+                hull.pop()
+            hull.append(index)
+        return hull
 
     def value(self, theta: float) -> float:
         theta = float(theta)
-        capacity = -float(self.instance.gamma) * theta
-        base_cost = 0.0
-        base_value = 0.0
-        slopes: list[float] = []
-        lengths: list[float] = []
-        for values, margins, deviations, indices in zip(
-            self.values, self.margins, self.deviations, self.option_indices
+        theta_numerator, theta_denominator = theta.as_integer_ratio()
+        theta_exponent = theta_denominator.bit_length() - 1
+        coefficient_exponent = max(
+            self._coefficient_exponent, theta_exponent
+        )
+        coefficient_shift = coefficient_exponent - self._coefficient_exponent
+        exact_theta = theta_numerator << (coefficient_exponent - theta_exponent)
+
+        exact_costs: list[list[int]] = []
+        exact_stars: list[int] = []
+        for margins, deviations in zip(
+            self._exact_margin_integers,
+            self._exact_deviation_integers,
         ):
-            robust_margin = margins - np.maximum(0.0, deviations - theta)
-            maximum = float(np.max(robust_margin))
-            capacity += maximum
-            costs = np.maximum(maximum - robust_margin, 0.0)
-            hull = build_upper_hull(costs, values, indices)
-            if hull.costs.size == 0:
-                return float("-inf")
-            base_cost += float(hull.costs[0])
-            base_value += float(hull.values[0])
-            keep = hull.delta_costs > self.tol
-            slopes.extend(hull.slopes[keep].tolist())
-            lengths.extend(hull.delta_costs[keep].tolist())
-        residual = capacity - base_cost
-        if residual < -self.tol * max(1.0, abs(capacity)):
+            slacks = [
+                (margin << coefficient_shift)
+                - max((deviation << coefficient_shift) - exact_theta, 0)
+                for margin, deviation in zip(margins, deviations)
+            ]
+            star = max(slacks)
+            exact_stars.append(star)
+            exact_costs.append([star - slack for slack in slacks])
+        exact_capacity = sum(exact_stars) - int(self.instance.gamma) * exact_theta
+        if exact_capacity < 0:
             return float("-inf")
-        residual = max(0.0, residual)
-        value = base_value
-        for index in np.argsort(-np.asarray(slopes, dtype=float), kind="stable"):
-            if residual <= self.tol:
+
+        base_cost = 0
+        base_value = 0
+        segments: list[tuple[int, int]] = []
+        for group_costs, group_values in zip(
+            exact_costs, self._exact_value_integers
+        ):
+            hull = self._exact_upper_hull(group_costs, group_values)
+            if not hull:
+                return float("-inf")
+            base_option = int(hull[0])
+            base_cost += group_costs[base_option]
+            base_value += group_values[base_option]
+            for lower, upper in zip(hull[:-1], hull[1:]):
+                lower_index = int(lower)
+                upper_index = int(upper)
+                length = group_costs[upper_index] - group_costs[lower_index]
+                if length <= 0:
+                    continue
+                value_change = group_values[upper_index] - group_values[lower_index]
+                if value_change > 0:
+                    segments.append((value_change, length))
+        residual = exact_capacity - base_cost
+        if residual < 0:
+            return float("-inf")
+
+        def descending_slope(left: tuple[int, int], right: tuple[int, int]) -> int:
+            comparison = left[0] * right[1] - right[0] * left[1]
+            return -1 if comparison > 0 else (1 if comparison < 0 else 0)
+
+        if segments:
+            try:
+                approximate_slopes = np.asarray(
+                    [value_change / length for value_change, length in segments],
+                    dtype=float,
+                )
+                order = np.argsort(-approximate_slopes, kind="stable").tolist()
+                exactly_sorted = all(
+                    descending_slope(segments[left], segments[right]) <= 0
+                    for left, right in zip(order[:-1], order[1:])
+                )
+            except OverflowError:
+                order = []
+                exactly_sorted = False
+            if not exactly_sorted:
+                ordered_segments = sorted(
+                    segments, key=cmp_to_key(descending_slope)
+                )
+            else:
+                ordered_segments = [segments[index] for index in order]
+        else:
+            ordered_segments = []
+
+        value = Fraction(base_value)
+        for value_change, length in ordered_segments:
+            if residual <= 0:
                 break
-            take = min(float(lengths[int(index)]), residual)
-            value += take * float(slopes[int(index)])
+            take = min(length, residual)
+            if take == length:
+                value += value_change
+            else:
+                value += Fraction(take * value_change, length)
             residual -= take
-        return float(value)
+        value /= 1 << self._value_exponent
+        try:
+            rounded = float(value)
+        except OverflowError:
+            return -math.inf if value < 0 else float(np.finfo(float).max)
+        if not math.isfinite(rounded):
+            return -math.inf if value < 0 else float(np.finfo(float).max)
+        if Fraction.from_float(rounded) > value:
+            rounded = float(np.nextafter(rounded, -math.inf))
+        return rounded
 
 
 def _normalize_integer_row(values: Sequence[Fraction | int]) -> tuple[int, ...]:
@@ -574,6 +720,7 @@ def solve_scip_with_conflicts(
     status = str(model.getStatus()).lower()
     objective = float("nan")
     certificate = float("nan")
+    selection = None
     if model.getNSols() > 0:
         selection = [
             max(range(len(group)), key=lambda j: float(model.getVal(z[i, j])))
@@ -583,7 +730,8 @@ def solve_scip_with_conflicts(
         certificate = compute_certificate(instance, selection)
     return {
         "status": status,
-        "certified": status == "optimal" and math.isfinite(certificate) and certificate >= -1e-7,
+        "certified": status == "optimal" and selection is not None
+        and certificate_is_feasible(instance, selection),
         "objective": objective,
         "certificate": certificate,
         "runtime_seconds": time.perf_counter() - start,
@@ -691,7 +839,12 @@ def adaptive_interval_bound(
 ) -> dict:
     start = time.perf_counter()
     lp_cache: dict[int, float] = {}
-    fixed_theta_oracle = FixedThetaLPOracle(instance)
+    fixed_theta_oracle = FixedThetaLPOracle(
+        instance,
+        objective_range_validated=bool(
+            getattr(oracle, "_objective_range_validated", False)
+        ),
+    )
     interval_bound_evaluations = 0
     multiplier_evaluations = 0
     certified_bound_evaluations = 0

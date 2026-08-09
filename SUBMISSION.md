@@ -1,6 +1,6 @@
 # Submission and Public Artifact Manifest
 
-**Current-version flag (2026-08-01):** `papers/current/` is canonical and
+**Current-version flag (2026-08-09):** `papers/current/` is canonical and
 points to `papers/v4/`.
 Version 3 is a separate manuscript and is not part of the v4 submission.
 
@@ -33,10 +33,11 @@ make anonymous PYTHON=.venv/bin/python
 The same target also builds `pdf/full.pdf`, the convenient combined
 main-plus-appendix version; it is not a separate journal upload.
 
-The current local builds are 20 pages for each OPRE main-paper variant, four
-pages for each companion, 19 pages for the combined reading version, and one
-page for the executive summary. The summary is cover-letter support and should
-be uploaded only if the journal permits it.
+The current OPRE main-paper variants are 21 physical pages: 19 counted pages
+after excluding the two reference pages. Each companion is four pages, the
+combined reading version is 19 pages, and the executive summary is one page.
+The summary is cover-letter support and should be uploaded only if the journal
+permits it.
 
 The OPRE wrapper is prepared as a Focused Technical submission: the abstract
 is text-forward, the introduction contains no equations or mathematical
@@ -54,7 +55,7 @@ or `CITATION.cff` in an anonymous submission.
 
 Repository: <https://github.com/eric939/simultaneous-group-envelope-mckp>
 
-The v4 branch/package must expose:
+The canonical Paper B release commit/package must expose:
 
 - `research/compressed_interval_oracle.py`;
 - `research/bound_dominance.py`, `research/integrated_exact_solver.py`, and
@@ -63,7 +64,7 @@ The v4 branch/package must expose:
 - all v4-specific tests;
 - `papers/v4/` source, generated TeX inputs, vector figure, and evidence
   manifest;
-- `results/release/`, including raw timing repetitions,
+- `results/release/2026-08-09-paper-b-final-r4/`, including raw timing repetitions,
   instance-level records, summaries, protocol, environments, and UCI-derived
   aggregates; and
 - current `README.md`, `REPRODUCIBILITY.md`, `SUBMISSION.md`, `CITATION.cff`,
@@ -72,6 +73,12 @@ The v4 branch/package must expose:
 Submission-ready article PDFs are checked in under `papers/v4/pdf/` and can also
 be attached to a tagged GitHub release or deposited with the journal artifact.
 Raw UCI Online Retail transactions are not redistributed.
+
+The deterministic arXiv source archive is
+`papers/current/arxiv-paper-b-source.zip`; it contains eight files and compiles
+from a clean extraction. The deterministic anonymous review archive is
+`papers/current/anonymous-supplement.zip` and passes the strict source, PDF-text,
+PDF-metadata, and filename identity scan.
 
 ## Pre-submission checks
 
@@ -96,9 +103,10 @@ All three searches should return no actionable hit. Bibliographic references
 to a prior working paper, if retained, must follow the target journal's
 double-blind self-citation policy.
 
-Before upload, create an immutable `v4` release tag from the exact submitted
-commit and record that tag or archive DOI in the submission form. Branch names
-alone are mutable and are not an archival identifier.
+Do not create the immutable release tag before upload. After the arXiv upload
+and journal package are confirmed against the exact commit, create a Paper B
+release tag from that submitted commit and record it in the public repository.
+Branch names alone are mutable and are not archival identifiers.
 
 ## Independence and disclosure rule
 

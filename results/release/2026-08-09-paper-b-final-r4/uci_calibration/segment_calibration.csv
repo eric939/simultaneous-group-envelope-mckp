@@ -1,0 +1,6 @@
+segment,source_used,share,reference_price_median,reference_price_log_sd,baseline_volume_median,baseline_volume_log_sd,elasticity_low,elasticity_high,uncertainty_scale,fairness_band,weight_multiplier
+staples,local_public_csv,0.37112593173793645,0.85,0.32,11.197485207100591,0.45,1.15,1.95,0.43755513830391296,0.08,1.2
+mainstream,local_public_csv,0.09336994899960768,2.46,0.36,6.11369168356998,0.55,1.9,3.1,0.3985594223959501,0.1,1.0
+premium,local_public_csv,0.3801490780698313,4.95,0.42,3.296774193548387,0.65,1.35,2.45,0.33958611440931274,0.12,0.9
+private_label,local_public_csv,0.12200863083562181,1.25,0.28,3.9238095238095236,0.5,2.7,4.6,0.4254803783921113,0.1,1.05
+seasonal,local_public_csv,0.03334641035700275,2.46,0.55,2.2857142857142856,0.85,2.1,4.2,0.3,0.15,0.8

@@ -28,6 +28,7 @@ from research.novelty_go_no_go import (
     minimal_group_conflicts,
     fixed_theta_lp_support,
 )
+from robust_mckp import Option, PricingInstance
 
 
 def test_cdd_exact_facets_contain_simplex_bounds() -> None:
@@ -87,6 +88,73 @@ def test_fast_fixed_theta_oracle_matches_reference(seed: int) -> None:
     for theta in thetas:
         expected = fixed_theta_lp_support(instance, theta, direction)
         assert oracle.value(theta) == pytest.approx(expected, abs=2e-7, rel=2e-10)
+
+
+def test_fixed_theta_oracle_keeps_small_positive_hull_segment() -> None:
+    instance = PricingInstance(
+        items=[
+            [
+                Option(0.0, 2.5e-10, 0.0),
+                Option(100.0, -2.5e-10, 0.0),
+            ]
+        ],
+        gamma=0,
+    )
+    assert FixedThetaLPOracle(instance).value(0.0) == pytest.approx(50.0)
+
+
+def test_fixed_theta_oracle_preserves_objective_cancellation_tail() -> None:
+    instance = PricingInstance(
+        items=[
+            [
+                Option(0.0, -24.0, 68719476736.0),
+                Option(0.0625, 268435456.0, 0.0078125),
+            ],
+            [
+                Option(0.0, -0.0234375, 128.0),
+                Option(-1099511627776.0, -4.0, 0.0),
+            ],
+            [Option(-3.814697265625e-6, 0.0, 9.5367431640625e-7)],
+        ],
+        gamma=0,
+    )
+    expected = 0.062496185302734375
+    assert FixedThetaLPOracle(instance).value(0.0) == pytest.approx(
+        expected, abs=0.0, rel=0.0
+    )
+
+
+def test_fixed_theta_oracle_uses_exact_cost_hull_topology() -> None:
+    instance = PricingInstance(
+        items=[
+            [
+                Option(0.0, -9.536743164060332e-7, 0.0),
+                Option(0.0, -1.7053025658263084e-13, 0.0),
+                Option(-4.835703278458517e24, 2.90142196707511e25, 0.0),
+            ]
+        ],
+        gamma=0,
+    )
+    expected = -2.842170943043847e-14
+    observed = FixedThetaLPOracle(instance).value(0.0)
+    assert observed <= expected
+    assert observed == pytest.approx(expected, abs=1e-28, rel=0.0)
+
+
+@pytest.mark.parametrize("sign", [1.0, -1.0])
+def test_fixed_theta_oracle_rejects_aggregate_objective_overflow(
+    sign: float,
+) -> None:
+    maximum = float(np.finfo(float).max)
+    instance = PricingInstance(
+        items=[
+            [Option(sign * maximum, 0.0, 0.0)],
+            [Option(sign * maximum, 0.0, 0.0)],
+        ],
+        gamma=0,
+    )
+    with pytest.raises(ValueError, match="rescale objective"):
+        FixedThetaLPOracle(instance)
 
 
 def test_bounded_theta_clique_lp_matches_fixed_theta_and_compact_lp() -> None:

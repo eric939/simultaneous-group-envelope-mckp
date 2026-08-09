@@ -61,6 +61,81 @@ def test_bnb_matches_bruteforce_random_tiny_instances() -> None:
                 _assert_matches_bruteforce(instance)
 
 
+def test_positive_sub_epsilon_hull_segment_is_not_erased() -> None:
+    instance = PricingInstance(
+        items=[
+            [
+                Option(value=0.0, margin=5e-11, uncertainty=0.0),
+                Option(value=1.0, margin=0.0, uncertainty=0.0),
+            ]
+        ],
+        gamma=0,
+    )
+    result = solve_fixed_theta_bnb(
+        instance,
+        0.0,
+        FixedThetaBNBConfig(use_greedy_incumbent=False),
+    )
+    assert result.status == "optimal"
+    assert result.selected_options == [1]
+    assert result.objective_value == pytest.approx(1.0, abs=0.0, rel=0.0)
+
+
+def test_exact_lp_bound_preserves_objective_cancellation() -> None:
+    instance = PricingInstance(
+        items=[
+            [Option(0.0, 0.0, 0.0), Option(1.0, -1e-20, 0.0)],
+            [Option(-1e30, 0.0, 0.0), Option(0.0, -1e20, 0.0)],
+            [Option(0.0, 1e20, 0.0)],
+            [Option(0.0, 1e-20, 0.0)],
+        ],
+        gamma=0,
+    )
+    result = solve_fixed_theta_bnb(
+        instance,
+        0.0,
+        FixedThetaBNBConfig(use_greedy_incumbent=False),
+    )
+    brute = brute_force_fixed_theta(instance, 0.0)
+    assert result.status == "optimal"
+    assert result.objective_value == pytest.approx(1.0, abs=0.0, rel=0.0)
+    assert result.objective_value == pytest.approx(
+        brute.objective_value, abs=0.0, rel=0.0
+    )
+
+
+def test_exact_objective_comparison_preserves_sub_ulp_improvement() -> None:
+    instance = PricingInstance(
+        items=[
+            [Option(-1.3468787627424937e29, 0.0, 0.0)],
+            [Option(2.1267647932558654e37, 0.0, 0.0)],
+            [Option(0.0, 1.0, 0.0), Option(1.0, 0.0, 0.0)],
+        ],
+        gamma=0,
+    )
+    incumbent = objective_for_selection(
+        [
+            np.asarray([option.value for option in group], dtype=float)
+            for group in instance.items
+        ],
+        [0, 0, 0],
+    )
+    result = solve_fixed_theta_bnb(
+        instance,
+        0.0,
+        FixedThetaBNBConfig(
+            tolerance=1e-300,
+            use_greedy_incumbent=False,
+            initial_incumbent_selection=[0, 0, 0],
+            initial_incumbent_value=incumbent,
+        ),
+    )
+    brute = brute_force_fixed_theta(instance, 0.0, tol=1e-300)
+    assert result.status == "optimal"
+    assert result.selected_options == [0, 0, 1]
+    assert brute.selected_options == [0, 0, 1]
+
+
 def test_negative_fixed_theta_capacity_is_infeasible() -> None:
     instance = PricingInstance(
         items=[[Option(value=1.0, margin=0.0, uncertainty=0.0)]],

@@ -68,6 +68,58 @@ def test_full_theta_candidates_all_zero_single_option() -> None:
     assert build_full_theta_candidates(instance) == [0.0]
 
 
+def test_global_bnb_rejects_negative_certificate_inside_solver_tolerance() -> None:
+    instance = PricingInstance(
+        items=[[Option(1.0, -5e-10, 0.0)]],
+        gamma=0,
+    )
+    assert solve_global_theta_bnb(instance).status == "infeasible"
+    assert brute_force_global_robust(instance).status == "infeasible"
+
+
+def test_exact_cost_dominance_keeps_feasible_option_when_float_costs_collapse() -> None:
+    large = float(2**84)
+    instance = PricingInstance(
+        items=[
+            [
+                Option(-1000.0, large, 0.0),
+                Option(0.0, 0.0, 0.0),
+                Option(100.0, -1.0, 0.0),
+            ]
+        ],
+        gamma=0,
+    )
+    exact = solve_global_theta_bnb(
+        instance, GlobalThetaBNBConfig(use_hullround_incumbent=False)
+    )
+    brute = brute_force_global_robust(instance)
+    assert exact.status == "optimal"
+    assert exact.selected_options == [1]
+    assert exact.objective_value == pytest.approx(0.0, abs=0.0, rel=0.0)
+    assert exact.objective_value == pytest.approx(
+        brute.objective_value, abs=0.0, rel=0.0
+    )
+
+
+def test_exact_solver_handles_transformed_cost_overflow_conservatively() -> None:
+    maximum = float(np.finfo(float).max)
+    instance = PricingInstance(
+        items=[
+            [
+                Option(0.0, maximum, 0.0),
+                Option(100.0, -maximum, 0.0),
+            ]
+        ],
+        gamma=0,
+    )
+    exact = solve_global_theta_bnb(
+        instance, GlobalThetaBNBConfig(use_hullround_incumbent=False)
+    )
+    assert exact.status == "optimal"
+    assert exact.selected_options == [0]
+    assert exact.objective_value == pytest.approx(0.0, abs=0.0, rel=0.0)
+
+
 def test_reduced_theta_set_can_falsely_reject_feasible_selection() -> None:
     # With two selected deviations of size 1 and Gamma=1, theta=0 gives
     # (0.75 - 1) + (0.75 - 1) < 0, but theta=1 gives 0.75 + 0.75 - 1 > 0.

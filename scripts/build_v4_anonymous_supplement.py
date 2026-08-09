@@ -21,6 +21,9 @@ IDENTITY_TERMS = (
     b"er" + b"sh" + b"ao",
     rb"ET" + rb"H\s+Z(?:urich|rich|\\\"urich)?",
     rb"github\.com/" + b"eric939",
+    rb"2603\.18653",
+    rb"certifying-" + rb"robust-pricing-" + rb"mckp",
+    rb"A\s+Certifying\s+MCKP\s+Framework",
     b"/" + b"Users/",
 )
 IDENTITY = re.compile(rb"(?:" + b"|".join(IDENTITY_TERMS) + rb")", re.IGNORECASE)
@@ -32,6 +35,10 @@ PUBLIC_ONLY_SOURCE_FILES = {
     "papers/v4/cover-letter.md",
     "papers/v4/main.tex",
     "pyproject.toml",
+    "REVISION_HISTORY.md",
+    "papers/README.md",
+    "research/EVIDENCE_LEDGER_V4.csv",
+    "research/LITERATURE_NOVELTY_AUDIT_V4.md",
 }
 
 
@@ -59,11 +66,34 @@ hashes are verified by the command above. Raw UCI transactions are not
 redistributed; the released aggregate calibration is included.
 """
 
-REQUIREMENTS = """numpy==2.4.4
-scipy==1.17.1
-matplotlib>=3.8
-pytest>=8
-tqdm>=4.66
+REQUIREMENTS = """colorama==0.4.6; sys_platform == 'win32'
+contourpy==1.3.2; python_full_version < '3.11'
+contourpy==1.3.3; python_full_version >= '3.11'
+cycler==0.12.1
+exceptiongroup==1.3.1; python_full_version < '3.11'
+fonttools==4.63.0
+iniconfig==2.3.0
+kiwisolver==1.5.0
+matplotlib==3.10.9; python_full_version < '3.11'
+matplotlib==3.11.1; python_full_version >= '3.11'
+numpy==2.2.6; python_full_version < '3.11'
+numpy==2.4.6; python_full_version == '3.11.*'
+numpy==2.5.1; python_full_version >= '3.12'
+packaging==26.3
+pillow==12.3.0
+pluggy==1.6.0
+pygments==2.20.0
+pyparsing==3.3.2
+pyscipopt==6.2.1
+pytest==9.1.1
+python-dateutil==2.9.0.post0
+scipy==1.15.3; python_full_version < '3.11'
+scipy==1.17.1; python_full_version == '3.11.*'
+scipy==1.18.0; python_full_version >= '3.12'
+six==1.17.0
+tomli==2.4.1; python_full_version < '3.11'
+tqdm==4.70.0
+typing-extensions==4.16.0; python_full_version < '3.11'
 """
 
 
@@ -121,7 +151,7 @@ def main() -> None:
 
     for path in sorted(results.rglob("*")):
         if path.is_file():
-            relative = Path("results") / results.name / path.relative_to(results)
+            relative = Path("results") / "release" / path.relative_to(results)
             add_file(payloads, path, relative.as_posix())
 
     for relative in public_manifest["generated"]:
@@ -139,7 +169,7 @@ def main() -> None:
 
     anonymous_manifest = dict(public_manifest)
     anonymous_manifest["anonymous_package"] = True
-    anonymous_manifest["results_directory"] = f"results/{results.name}"
+    anonymous_manifest["results_directory"] = "results/release"
     anonymous_manifest["source_files"] = {
         name: digest
         for name, digest in public_manifest["source_files"].items()

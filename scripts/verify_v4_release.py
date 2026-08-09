@@ -22,6 +22,10 @@ TEXT_ARTIFACTS = (
     "generated/table-kernel.tex",
     "generated/table-stress.tex",
     "generated/table-external.tex",
+    "generated/speedup-scaling.pdf",
+    "generated/speedup-scaling.png",
+    "generated/common-trace-comparator.pdf",
+    "generated/common-trace-comparator.png",
 )
 
 
@@ -132,6 +136,12 @@ def main() -> None:
         (exact_dir / "environment_exact_integration.json").read_text(encoding="utf-8")
     )
     observed_exact_threads = exact_environment.get("thread_environment", {})
+    require(
+        exact_environment.get("protocol_sha256") == protocol_digest,
+        "protocol digest mismatch in exact integration audit",
+    )
+    for key in ("timestamp_utc", "numpy", "scipy", "pyscipopt", "scip", "machine"):
+        require(bool(exact_environment.get(key)), f"missing {key} in exact integration environment")
     require(
         all(
             observed_exact_threads.get(key) == value

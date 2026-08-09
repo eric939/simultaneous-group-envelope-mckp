@@ -22,12 +22,14 @@ from dataclasses import dataclass, field
 from typing import Literal, Optional
 
 import numpy as np
+from fractions import Fraction
 
 from robust_mckp import PricingInstance
-from robust_mckp.certificate import compute_certificate
+from robust_mckp.certificate import certificate_is_feasible, compute_certificate
 from robust_mckp.exact_bnb import (
     FixedThetaBNBConfig,
     FixedThetaBNBResult,
+    _selection_objective_fraction,
     build_full_theta_candidates,
     solve_fixed_theta_bnb,
 )
@@ -104,9 +106,14 @@ def solve_interval_exact(
     total_nodes = 0
     theta_results: dict[int, FixedThetaBNBResult] = {}
     incumbent_value = float("-inf")
+    incumbent_exact_value: Optional[Fraction] = None
     incumbent_selection: Optional[list[int]] = None
     incumbent_theta: Optional[float] = None
     error_message = ""
+    objective_arrays = [
+        np.asarray([option.value for option in group], dtype=float)
+        for group in instance.items
+    ]
 
     if cfg.use_hullround_incumbent:
         try:
@@ -114,11 +121,14 @@ def solve_interval_exact(
             if (
                 heuristic.is_feasible
                 and heuristic.selections
-                and compute_certificate(instance, heuristic.selections)
-                >= -cfg.tolerance
+                and certificate_is_feasible(instance, heuristic.selections)
             ):
                 incumbent_value = float(heuristic.objective)
                 incumbent_selection = list(map(int, heuristic.selections))
+                incumbent_exact_value = _selection_objective_fraction(
+                    objective_arrays, incumbent_selection
+                )
+                incumbent_value = float(incumbent_exact_value)
                 incumbent_theta = float(heuristic.theta)
         except Exception:
             pass
@@ -146,7 +156,8 @@ def solve_interval_exact(
         return value
 
     def solve_theta(index: int) -> None:
-        nonlocal incumbent_value, incumbent_selection, incumbent_theta
+        nonlocal incumbent_value, incumbent_exact_value
+        nonlocal incumbent_selection, incumbent_theta
         nonlocal fixed_theta_seconds, total_nodes, error_message
         if index in theta_results or elapsed() >= cfg.time_limit_seconds:
             return
@@ -173,11 +184,18 @@ def solve_interval_exact(
             error_message = result.message or "fixed-threshold solver error"
         if result.selected_options is not None:
             certificate = compute_certificate(instance, result.selected_options)
+            candidate_exact = _selection_objective_fraction(
+                objective_arrays, result.selected_options
+            )
             if (
-                certificate >= -cfg.tolerance
-                and result.objective_value > incumbent_value + cfg.tolerance
+                certificate_is_feasible(instance, result.selected_options)
+                and (
+                    incumbent_exact_value is None
+                    or candidate_exact > incumbent_exact_value
+                )
             ):
                 incumbent_value = float(result.objective_value)
+                incumbent_exact_value = candidate_exact
                 incumbent_selection = list(map(int, result.selected_options))
                 incumbent_theta = float(thetas[index])
 
@@ -197,9 +215,7 @@ def solve_interval_exact(
     while queue and elapsed() < cfg.time_limit_seconds and not error_message:
         neg_bound, lo, hi = heapq.heappop(queue)
         current_bound = -float(neg_bound)
-        if math.isfinite(incumbent_value) and (
-            current_bound <= incumbent_value + scaled_tolerance()
-        ):
+        if math.isfinite(incumbent_value) and current_bound < incumbent_value:
             discarded_upper = max(discarded_upper, current_bound)
             interval_prunes += 1
             thresholds_covered_by_prunes += hi - lo + 1
@@ -244,9 +260,7 @@ def solve_interval_exact(
             child_bound = interval_bound(child_lo, child_hi)
             if not math.isfinite(child_bound):
                 continue
-            if math.isfinite(incumbent_value) and (
-                child_bound <= incumbent_value + scaled_tolerance()
-            ):
+            if math.isfinite(incumbent_value) and child_bound < incumbent_value:
                 discarded_upper = max(discarded_upper, child_bound)
                 interval_prunes += 1
                 thresholds_covered_by_prunes += child_hi - child_lo + 1

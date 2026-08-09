@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simultaneous-group-envelope-mckp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Simultaneous Lagrangian bounds and certifying algorithms for Gamma-robust MCKP."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 authors = [
-  {name = "Eric Shao", email = "ershao@student.ethz.ch"}
+  {name = "Zi Yuan Eric Shao", email = "ershao@student.ethz.ch"}
 ]
 keywords = ["robust optimization", "multiple-choice knapsack", "Lagrangian bounds", "certification"]
 classifiers = [
@@ -48,5 +48,5 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
-pythonpath = ["src"]
+pythonpath = [".", "src"]
 testpaths = ["tests"]

@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 from robust_mckp import PricingInstance
-from robust_mckp.certificate import compute_certificate
+from robust_mckp.certificate import certificate_is_feasible, compute_certificate
 from robust_mckp.utils import EPS
 
 
@@ -151,7 +151,8 @@ def solve_full_robust_highs(
         certificate = compute_certificate(instance, selections)
     return {
         "status": _highs_status(status),
-        "certified": status == 0 and selections is not None and certificate >= -1e-7,
+        "certified": status == 0 and selections is not None
+        and certificate_is_feasible(instance, selections),
         "objective": objective,
         "best_bound": -_optional_float(getattr(result, "mip_dual_bound", None)),
         "runtime_s": runtime,
@@ -209,7 +210,9 @@ def solve_fixed_theta_highs(
         cost_used = float(sum(costs[i][j] for i, j in enumerate(selections)))
     return {
         "status": _highs_status(status),
-        "certified": status == 0 and selections is not None and certificate >= -1e-7 and cost_used <= capacity + 1e-7,
+        "certified": status == 0 and selections is not None
+        and certificate_is_feasible(instance, selections)
+        and cost_used <= capacity + 1e-7,
         "objective": objective,
         "runtime_s": runtime,
         "mip_gap": _optional_float(getattr(result, "mip_gap", None)),
@@ -250,7 +253,8 @@ def solve_theta_enum_highs(
     certificate = compute_certificate(instance, best_selection) if best_selection is not None else float("nan")
     return {
         "status": "OPTIMAL" if best_selection is not None else "NO_FEASIBLE_THETA",
-        "certified": best_selection is not None and certificate >= -1e-7,
+        "certified": best_selection is not None
+        and certificate_is_feasible(instance, best_selection),
         "objective": float(best_objective),
         "runtime_s": time.perf_counter() - t0,
         "theta_count": int(candidates.size),
@@ -323,7 +327,8 @@ def solve_full_robust_scip(
         gap = float("nan")
     return {
         "status": status,
-        "certified": status == "OPTIMAL" and selections is not None and certificate >= -1e-7,
+        "certified": status == "OPTIMAL" and selections is not None
+        and certificate_is_feasible(instance, selections),
         "objective": objective,
         "best_bound": bound,
         "mip_gap": gap,

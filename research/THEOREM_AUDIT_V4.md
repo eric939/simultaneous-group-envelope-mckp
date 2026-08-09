@@ -1,6 +1,6 @@
 # V4 theorem and implementation audit
 
-Audit date: 1 August 2026.
+Initial audit date: 1 August 2026. Adversarial re-audit: 9 August 2026.
 
 Reviewers: the primary Codex research orchestrator and an independent Codex
 proof-review agent. The independent reviewer inspected the manuscript,
@@ -50,7 +50,60 @@ the focused suite reports 98 passes, and the complete repository suite reports
 166 passes. No remaining circularity, hidden division, endpoint inconsistency,
 or theorem/implementation mismatch was found in the audited results.
 
-Verdict: theorem and implementation sign-off for release under the
-manuscript's stated real-arithmetic and solver-tolerance qualifications.
+That August 1 verdict was superseded by a stronger August 9 audit. The later
+review found adversarial binary64 cancellation in the feasibility mask,
+range sums, fixed-threshold capacities, and returned LP values; tolerance
+acceptance of negative original robust certificates; structural tolerance
+removal of positive hull segments; rounded-cost dominance and hull-topology
+errors; a multiplier-resolution nontermination case; a signed-overflow
+enclosure error; and padded/quadratic implementation paths inconsistent with
+the general complexity claim.
+
+The release candidate now uses exact-sign predicates for original robust
+feasibility, exact scaled-integer fixed-threshold costs and capacities,
+exact-cost dominance and hull topology, and exact rational fallback whenever
+a numerical enclosure leaves a sign or comparison ambiguous. Vectorized
+range accumulation carries an explicit forward-error enclosure; the optimized
+rectangular kernel is enabled only when its padded size is at most twice the
+ragged option count, while highly unequal menus retain the ragged path.
+Adjacent-sorted preprocessing and both query branches therefore realize the
+ordinary-path storage and preprocessing claims. Singleton multiplier minimization is exact
+piecewise-linear arithmetic, and multiplier resolution returns a valid
+coarser gap rather than raising or claiming the requested tolerance. The
+public adaptive and integer entry points reject an unrepresentable aggregate
+objective range with rescaling guidance. Fixed-threshold LP scalar bounds and
+integer incumbent comparisons use exact binary64 rationals, so cancellation
+and sub-ULP improvements cannot be turned into zero-gap certificates. Regression tests
+preserve every reported counterexample, including cancellation across widely
+separated exponents and distinct exact costs that collapse to one binary64
+value.
+
+A new dated evidence release is required because these are algorithmic
+changes. The R2 campaign was preserved as a failed performance audit after its
+first 18 matched-trace cells revealed repeated full-family exact fallbacks.
+The ambiguity-set restriction and guarded query kernel retain the same
+enclosures and exact comparisons, and all focused and complete tests pass.
+R3 then passed validation, kernel, trace validity, and every primary gate
+except the precommitted 2x geometric-mean speed target and its 1.5x bootstrap
+lower bound. It is preserved as a failed performance audit. The subsequent
+implementation uses exact scaled-integer fixed-LP arithmetic, accepts a
+floating slope order only after exact adjacent-order verification, and uses a
+rectangular exact-comparison kernel only for equal-width menus. The full 187
+tests and 41,079 independent exact-enclosure comparisons pass. The final
+R4 passes every fixed scientific gate: validation, kernel identity and speed,
+primary tolerance/speed/interval/win/dominance/breadth, and robustness
+tolerance/configuration breadth. It also preserves and reports the negative
+UCI timing result and the exact-integration many-breakpoints boundary. The
+complete 187-test suite and release verifier pass against the R4 evidence and
+regenerated artifacts. All six manuscript variants compile; the public, blind,
+companion, combined, and summary PDFs were rendered and visually reviewed with
+no clipping, overlap, missing content, malformed figures, or unresolved-reference
+defect. All fonts are embedded and no Type 3 font is present. The blind PDFs and
+the anonymous archive pass the strict identity scan. Two independent rebuilds
+of each review archive were byte-identical, and the eight-file arXiv archive
+compiled from a clean extraction. These checks complete the publication-artifact
+audit. The pre-R4 campaigns remain failed audit evidence rather than release
+evidence.
+
 Machine formalization was not performed; independent mathematical peer review
 of the statement-to-model correspondence remains recommended.

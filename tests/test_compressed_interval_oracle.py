@@ -195,20 +195,131 @@ def test_near_repeated_deviations_preserve_endpoint_convention(spacing: float) -
         assert actual == pytest.approx(expected, abs=2e-11, rel=2e-12)
 
 
-def test_fixed_multiplier_traces_are_reused_across_intervals(monkeypatch) -> None:
+def test_fixed_multiplier_grid_bound_is_repeatable_across_intervals() -> None:
     instance = build_small_instance(seed=717, n=6, m=4, gamma=2)
     oracle = CompressedThetaIntervalOracle(instance)
-    original = oracle._envelope_values
-    calls = 0
+    first = oracle.bound(0, len(oracle.thetas) - 1, local_search=False)
+    second = oracle.bound(0, len(oracle.thetas) - 1, local_search=False)
+    assert first.upper_bound == second.upper_bound
+    assert first.lambda_value == second.lambda_value
+    assert first.evaluations == len(oracle.multiplier_grid)
 
-    def counted(lambda_value, objective_values=None):
-        nonlocal calls
-        calls += 1
-        return original(lambda_value, objective_values)
 
-    monkeypatch.setattr(oracle, "_envelope_values", counted)
-    oracle.bound(0, len(oracle.thetas) - 1, local_search=False)
-    first_calls = calls
-    oracle.bound(0, len(oracle.thetas) // 2, local_search=False)
-    assert first_calls == len(oracle.multiplier_grid)
-    assert calls == first_calls
+def test_exact_capacity_mask_survives_catastrophic_cancellation() -> None:
+    instance = PricingInstance(
+        items=[
+            [Option(0.0, -1e16, 0.0)],
+            [Option(0.0, 1.0, 0.0)],
+            [Option(0.0, 1e16, 0.0)],
+            [Option(0.0, -0.5, 0.0)],
+        ],
+        gamma=0,
+    )
+    oracle = CompressedThetaIntervalOracle(instance)
+    assert oracle.feasible_thresholds.tolist() == [True]
+    assert oracle.capacities.tolist() == [0.5]
+    assert oracle.bound(0, 0).upper_bound >= 0.0
+
+
+def test_singleton_exact_fallback_avoids_multiplier_resolution_floor() -> None:
+    instance = PricingInstance(
+        items=[
+            [
+                Option(0.0, 0.0, 0.0),
+                Option(
+                    137438953472.0,
+                    3.5762786865234375e-7,
+                    1610612736.0,
+                ),
+            ]
+        ],
+        gamma=1,
+    )
+    oracle = CompressedThetaIntervalOracle(instance)
+    result = oracle.bound(0, len(oracle.thetas) - 1)
+    assert result.certified
+    assert result.upper_bound == pytest.approx(0.0, abs=0.0, rel=0.0)
+    assert result.lower_bound == pytest.approx(0.0, abs=0.0, rel=0.0)
+
+
+def test_overflowing_aggregate_objective_is_rejected_with_rescaling_guidance() -> None:
+    maximum = float(np.finfo(float).max)
+    instance = PricingInstance(
+        items=[
+            [Option(maximum, 0.0, 0.0)],
+            [Option(maximum, 0.0, 0.0)],
+        ],
+        gamma=0,
+    )
+    with pytest.raises(ValueError, match="rescale objective"):
+        CompressedThetaIntervalOracle(instance)
+
+
+def test_negative_overflowing_aggregate_objective_is_rejected() -> None:
+    maximum = float(np.finfo(float).max)
+    instance = PricingInstance(
+        items=[
+            [Option(-maximum, 0.0, 0.0)],
+            [Option(-maximum, 0.0, 0.0)],
+        ],
+        gamma=0,
+    )
+    with pytest.raises(ValueError, match="rescale objective"):
+        CompressedThetaIntervalOracle(instance)
+
+
+def test_certified_bound_encloses_cancelling_group_envelope() -> None:
+    instance = PricingInstance(
+        items=[
+            [Option(100.0, -1.0, 0.0), Option(0.0, 1.0, 0.0)],
+            [Option(1.0, 0.0, 0.0)],
+            [Option(-0.5, 0.0, 0.0)],
+            [Option(-1e16, 0.0, 0.0)],
+            [Option(1e16, 0.0, 0.0)],
+        ],
+        gamma=0,
+    )
+    result = CompressedThetaIntervalOracle(instance).bound(0, 0)
+    assert result.certified
+    assert result.lower_bound <= 50.5 <= result.upper_bound
+
+
+def test_small_negative_capacity_is_not_tolerance_feasible() -> None:
+    instance = PricingInstance(
+        items=[[Option(1.0, -5e-10, 0.0)]],
+        gamma=0,
+    )
+    result = CompressedThetaIntervalOracle(instance).bound(0, 0)
+    assert result.certified
+    assert result.upper_bound == float("-inf")
+
+
+def test_highly_unequal_menus_use_ragged_certified_path() -> None:
+    instance = PricingInstance(
+        items=[
+            [Option(1.0, 2.0, 0.0)],
+            [
+                Option(
+                    value=float(index) / 7.0,
+                    margin=3.0 - float(index) / 11.0,
+                    uncertainty=float(index % 6) / 5.0,
+                )
+                for index in range(20)
+            ],
+            [Option(-0.5, 1.5, 0.25)],
+        ],
+        gamma=1,
+    )
+    dense = ThetaIntervalOracle(instance)
+    compressed = CompressedThetaIntervalOracle(instance)
+    assert not compressed._use_padded_fast_path
+    for lambda_value in (0.0, 0.125, 1.75, 19.0):
+        actual = compressed.values_at_lambda(
+            lambda_value, 0, len(compressed.thetas) - 1
+        )
+        expected = dense.values_at_lambda(
+            lambda_value, 0, len(dense.thetas) - 1
+        )
+        assert actual == pytest.approx(expected, abs=2e-10, rel=2e-12)
+    result = compressed.bound(0, len(compressed.thetas) - 1)
+    assert result.certified

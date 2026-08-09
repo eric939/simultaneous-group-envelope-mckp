@@ -58,7 +58,7 @@ def repository_relative(path: Path) -> str:
 
 def source_snapshot() -> list[Path]:
     """Conservatively hash executable and validation sources behind the release."""
-    paths: set[Path] = {ROOT / "Makefile", ROOT / "pyproject.toml"}
+    paths: set[Path] = {ROOT / "Makefile", ROOT / "pyproject.toml", ROOT / "uv.lock"}
     paths.update((ROOT / "src" / "robust_mckp").glob("*.py"))
     paths.update((ROOT / "tests").glob("*.py"))
     paths.update((ROOT / "papers" / "v4").glob("*.tex"))
@@ -89,6 +89,7 @@ def source_snapshot() -> list[Path]:
         "research/V4_EXPERIMENT_AUDIT_LOG.md",
         "research/v4_publication_campaign.py",
         "scripts/benchmark_solvers.py",
+        "scripts/build_arxiv_source.py",
         "scripts/build_v4_anonymous_supplement.py",
         "scripts/run_pathC_data_calibration.py",
         "scripts/run_pathC_semisynthetic_application.py",
@@ -563,7 +564,10 @@ def main() -> None:
     speedup_figure(primary, stress, kernel, generated / "speedup-scaling.pdf")
     common_trace_figure(common_trace, generated / "common-trace-comparator.pdf")
 
-    evidence_files = sorted(results.rglob("*.csv")) + sorted(results.rglob("*.json"))
+    evidence_files = sorted(
+        path for path in results.rglob("*")
+        if path.is_file() and path.name != ".DS_Store"
+    )
     manifest = {
         "results_directory": repository_relative(results),
         "files": {str(path.relative_to(results)): sha256(path) for path in evidence_files},

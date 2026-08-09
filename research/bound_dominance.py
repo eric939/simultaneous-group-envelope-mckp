@@ -1,4 +1,4 @@
-"""Exact epigraph LP and validation helpers for interval-bound dominance.
+"""Independent epigraph LP and validation helpers for interval-bound dominance.
 
 For a finite threshold interval, the group-envelope minimax bound is
 
@@ -12,6 +12,7 @@ the minimax bound never exceeds the clique-LP bound.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from fractions import Fraction
 
 import numpy as np
 import scipy.optimize as opt
@@ -23,7 +24,7 @@ from robust_mckp.exact_bnb import build_fixed_theta_data, build_full_theta_candi
 
 @dataclass(frozen=True)
 class ExactMinimaxResult:
-    """Optimizer-certified solution of the finite minimax epigraph LP."""
+    """Numerical optimizer solution of the finite minimax epigraph LP."""
 
     upper_bound: float
     multiplier: float
@@ -38,7 +39,7 @@ def exact_minimax_epigraph_bound(
     *,
     tolerance: float = 1e-9,
 ) -> ExactMinimaxResult:
-    """Solve the finite minimax envelope bound exactly as a linear program.
+    """Solve the finite minimax envelope bound as an independent epigraph LP.
 
     This routine is intended for theorem validation and small/medium audit
     cases.  The publication algorithm uses the faster one-dimensional oracle.
@@ -50,8 +51,20 @@ def exact_minimax_epigraph_bound(
 
     records = []
     for index in range(lo, hi + 1):
-        data = build_fixed_theta_data(instance, float(thetas[index]))
-        if data.capacity >= -tolerance:
+        theta = float(thetas[index])
+        data = build_fixed_theta_data(instance, theta)
+        exact_theta = Fraction.from_float(theta)
+        exact_capacity = -int(instance.gamma) * exact_theta
+        for group in instance.items:
+            exact_capacity += max(
+                Fraction.from_float(float(option.margin))
+                - max(
+                    Fraction.from_float(abs(float(option.uncertainty))) - exact_theta,
+                    Fraction(0),
+                )
+                for option in group
+            )
+        if exact_capacity >= 0:
             records.append((index, data))
     if not records:
         return ExactMinimaxResult(float("-inf"), 0.0, 0, "infeasible")

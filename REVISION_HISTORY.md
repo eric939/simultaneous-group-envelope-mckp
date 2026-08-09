@@ -4,15 +4,124 @@ This branch records only durable facts for the independent v4 publication
 project. The separate v3 manuscript, experiments, and history remain on the
 `v3` branch; v4 is neither a revision of v3 nor a replacement for it.
 
+## Certified-accumulation performance gates and R4 rerun
+
+Date: 2026-08-09.
+
+- The first post-correction campaign in
+  `results/release/2026-08-09-paper-b-final/` passed its numerical-identity
+  gate but reached only 2.7174x geometric-mean total kernel speedup for
+  `n >= 360`, below the protocol-fixed 3x gate. The campaign was stopped during
+  the primary phase and this incomplete failed run is preserved unchanged.
+- No gate was weakened. The certified range accumulator was refactored to use
+  vectorized prefix sums with an explicit forward-error enclosure; exact
+  rational fallbacks remain responsible for ambiguous feasibility and value
+  comparisons.
+- The same adversarial review exposed rounded-cost dominance, sub-epsilon hull
+  segments, cancellation in fixed-threshold LP objectives, and objective
+  improvements smaller than one aggregate binary64 unit. Fixed-threshold
+  feasibility, hull topology, LP scalar bounds, and incumbent comparisons now
+  use exact scaled integers or exact binary64 rationals; floating LP solutions
+  remain branching guides only. Inputs whose aggregate objective range is not
+  representable are rejected with rescaling guidance.
+- The R2 validation and kernel phases then passed, including an 18.49x
+  construction-plus-nine-query kernel speedup. The matched-trace phase exposed
+  a different bottleneck: exact ambiguity checks rescanned the full threshold
+  family at overlapping multiplier comparisons. The first 18 trace cells were
+  all slower than the sparse clique comparator, so the run was stopped and its
+  incomplete files remain preserved in
+  `results/release/2026-08-09-paper-b-final-r2/`. No negative timing result was
+  discarded or relabeled as release evidence.
+- The certified ordinary path now retains only thresholds whose numerical
+  enclosures can attain the interval maximum, uses exact scaled-integer
+  evaluation for that ambiguity set, caches shared multiplier evaluations
+  across overlapping intervals, and uses a rectangular vector kernel only
+  when its padded size is at most twice the ragged option count. Highly unequal
+  menus retain the ragged path, so both branches preserve linear option-count
+  work and storage. A fixed 24-cell trace rehearsal retained every certificate
+  and bound while reducing representative runtime from 6.27 seconds to 0.06
+  seconds; it produced 22/24 wins and a 1.66x geometric-mean speedup before
+  timing repetitions.
+- R3 passed validation, the kernel gate at 45.39x total and 8.81x query-only
+  speedup for `n >= 360`, and the matched trace with 22/24 wins and a 1.63x
+  geometric mean. Its complete 60-instance primary phase retained every
+  certificate, achieved 60/60 wins and positive family breadth, but failed the
+  protocol-fixed 2x geometric-mean gate at 1.52x and the 1.5x bootstrap-lower
+  gate at 1.42x. The run was stopped before completing robustness; its files
+  remain preserved unchanged in
+  `results/release/2026-08-09-paper-b-final-r3/`.
+- No gate was weakened. Profiling showed that exact fixed-threshold hull work
+  and exact ambiguity comparisons dominated the corrected implementation.
+  Fixed-threshold LP evaluation now uses scaled integers, cross-product hull
+  tests, a fast proposed slope order accepted only after exact adjacent-order
+  verification, and exact fallback otherwise. The certified rectangular path
+  uses a standard outward rounding-factor enclosure, and exact threshold
+  comparisons use a rectangular scaled-integer kernel when all menu widths
+  agree. The ragged and adversarial fallbacks are unchanged.
+- The complete suite reports 187 tests, and 41,079 exact rational enclosure
+  checks over 2,500 random wide-exponent instances found no escape. A fixed
+  one-repeat rehearsal showed materially larger speedups across the difficult
+  small, medium, and large regimes; it is diagnostic evidence, not a release
+  result. Because the algorithm and timing path changed, the complete campaign
+  is rerun in the new canonical directory
+  `results/release/2026-08-09-paper-b-final-r4/`.
+- R4 passes every protocol-fixed validation, kernel, primary, and robustness
+  gate. The kernel records 60.14x construction-plus-nine-query and 9.90x
+  query-only speedup for `n >= 360`; matched trace records 24/24 wins at 2.21x;
+  and the primary panel records 60/60 wins at 2.37x with a 95% interval of
+  [2.27, 2.47]. Stress records 8/8 wins at 5.36x and the published-coefficient
+  panel records 9/9 wins at 2.75x.
+- The release also preserves two operating boundaries. The sparse-budget
+  robustness configuration records 6/12 wins despite a 1.29x geometric mean,
+  and the UCI-calibrated panel records 0/9 wins with a 0.27 clique/compressed
+  time ratio when only about 0.5% of thresholds are evaluated as fixed LPs.
+  The manuscript reports both results directly. In the separate exact audit,
+  envelope search, clique search, and enumeration each certify 7/12 cases
+  within five seconds, compact SCIP certifies 12/12, and every jointly
+  certified objective agrees exactly at recorded precision.
+- The final R4 release verifier passes all 187 tests and checks 41 evidence
+  files, 61 source files, and ten regenerated text artifacts. All six PDF
+  variants compile and were rendered for visual review; every font is embedded,
+  no Type 3 font is present, and the blind files pass the identity scan. The
+  anonymous review archive and eight-file arXiv source archive rebuild
+  deterministically, and the latter compiles from a clean extraction.
+
 ## Version 4 — Current Manuscript
 
-Date: 2026-08-01.
+Release-candidate update: 2026-08-09 (original protocol freeze: 2026-08-01).
 
 The canonical source is `papers/current/main.tex`. The focused
 algorithmic contribution is simultaneous Lagrangian evaluation over the
 complete robust-MCKP threshold family using exactly-one group envelopes.
 
 Durable contributions and boundaries:
+
+- The August 9 adversarial audit found that signed range accumulation could
+  erase small capacity or envelope terms, that tolerance masks could misclassify
+  threshold feasibility, and that the shared integer solver still accepted
+  small negative original certificates. The release candidate replaces those
+  paths with vectorized range accumulation carrying explicit forward-error
+  enclosures, exact rational fallback for ambiguous comparisons, and exact-sign
+  incumbent validation. Counterexamples and regressions are preserved in the
+  test suite; the changed algorithms use a new dated evidence release.
+- The released oracle uses ragged group arrays and a linear/log-linear
+  multiplier-scale heuristic. A guarded rectangular query kernel is used only
+  when its padded size is at most twice the ragged option count, preserving the
+  stated linear storage and query-work bound. Earlier notes below about
+  unrestricted padded arrays and a solver-tolerance-only certificate describe
+  superseded pre-audit builds.
+- The first dated-release rerun passed all 40 validation cases, then stopped in
+  the kernel phase because its storage-accounting helper still referenced the
+  removed padded eligibility array. The helper was corrected for ragged arrays;
+  no partial kernel evidence was accepted as released evidence.
+- A subsequent kernel rerun was manually interrupted while timing the dense
+  reference oracle so its apparent delay could be inspected; it had not failed
+  a scientific gate. The kernel phase was restarted from scratch, and only its
+  completed output is eligible for the final manifest.
+- That restart was itself discarded when the Lipschitz-constant construction
+  was strengthened to an outward-rounded exact bound during the run. The final
+  campaign begins only after this last certificate change; earlier partial CSVs
+  are overwritten before manifest generation and are not release evidence.
 
 - The cancellation and two-envelope representation yields a prefix/suffix
   range algorithm with `O(B + K log(B + 1))` time and `O(B + K)` theoretical
@@ -44,7 +153,12 @@ Date: 2026-08-09.
 
 - Froze the companion Paper A as *A Certifying MCKP Framework for
   Gamma-Robust Discrete Pricing* (arXiv:2603.18653v2) in the separate public
-  `robust_pricing_mckp` repository.
+  `certifying-robust-pricing-mckp` repository.
+- Separated Paper A's public software surface from its publication archive:
+  the submitted source remains locally preserved at commit `5cf4d20`, while
+  the reviewer-facing GitHub repository is a code-only `v1.0.1` release at
+  commit `85f87d5`; the patch release adds exact-safe fixed-threshold
+  feasibility without changing the frozen manuscript.
 - Updated the introduction, pricing specialization, prior-art table,
   bibliography, cover letter, project map, and evidence ledger to state the
   cumulative but nonduplicative relationship: Paper A owns the robust-pricing

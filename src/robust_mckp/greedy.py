@@ -44,9 +44,9 @@ class Segment:
 def _position_from_cost(hull: Hull, cost: float) -> ItemLPPosition:
     costs = hull.costs
     values = hull.values
-    if cost <= costs[0] + EPS:
+    if cost <= costs[0]:
         return ItemLPPosition(lower_vertex=0, upper_vertex=0, lambda_=0.0, cost=costs[0], value=values[0])
-    if cost >= costs[-1] - EPS:
+    if cost >= costs[-1]:
         return ItemLPPosition(
             lower_vertex=len(costs) - 1,
             upper_vertex=len(costs) - 1,
@@ -59,7 +59,7 @@ def _position_from_cost(hull: Hull, cost: float) -> ItemLPPosition:
     k = max(0, min(k, len(costs) - 2))
     c0 = costs[k]
     c1 = costs[k + 1]
-    if abs(c1 - c0) <= EPS:
+    if c1 == c0:
         lam = 0.0
     else:
         lam = (cost - c0) / (c1 - c0)
@@ -113,7 +113,7 @@ def greedy_lp(hulls: List[Hull], capacity: float) -> LPSolution:
     segments: List[Segment] = []
     for i, hull in enumerate(hulls):
         for k, (slope, length) in enumerate(zip(hull.slopes, hull.delta_costs)):
-            if length <= EPS:
+            if length <= 0.0:
                 continue
             segments.append(Segment(item=i, index=k, slope=float(slope), length=float(length)))
 
@@ -125,15 +125,15 @@ def greedy_lp(hulls: List[Hull], capacity: float) -> LPSolution:
     fractional_lambda = 0.0
 
     for seg in segments:
-        if residual <= EPS:
+        if residual <= 0.0:
             break
         take = min(seg.length, residual)
-        if take <= EPS:
+        if take <= 0.0:
             continue
         extra_costs[seg.item] += take
         extra_value += take * seg.slope
         residual -= take
-        if take + EPS < seg.length:
+        if take < seg.length:
             fractional_item = seg.item
             fractional_lambda = take / seg.length
             break

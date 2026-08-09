@@ -41,7 +41,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from robust_mckp import GlobalThetaBNBConfig, Option, PricingInstance, solve  # noqa: E402
-from robust_mckp.certificate import compute_certificate  # noqa: E402
+from robust_mckp.certificate import certificate_is_feasible, compute_certificate  # noqa: E402
 from robust_mckp.exact_bnb import (  # noqa: E402
     FixedThetaBNBConfig,
     build_fixed_theta_data,
@@ -210,7 +210,7 @@ def feasible_assignments(instance: PricingInstance) -> list[tuple[int, ...]]:
     return [
         selection
         for selection in all_assignments(instance)
-        if compute_certificate(instance, selection) >= -TOL
+        if certificate_is_feasible(instance, selection)
     ]
 
 
@@ -756,7 +756,7 @@ def interval_exact_solve(
             singleton_solved += 1
             if result.selected_options is not None and result.objective_value > incumbent + TOL:
                 certificate = compute_certificate(instance, result.selected_options)
-                if certificate < -1e-7:
+                if not certificate_is_feasible(instance, result.selected_options):
                     raise AssertionError("fixed-theta leaf returned a non-robust incumbent")
                 incumbent = float(result.objective_value)
                 incumbent_selection = list(result.selected_options)
@@ -787,7 +787,12 @@ def interval_exact_solve(
     )
     absolute_gap = max(0.0, unresolved_upper - incumbent) if math.isfinite(incumbent) else float("inf")
     relative_gap = absolute_gap / max(1.0, abs(incumbent)) if math.isfinite(absolute_gap) else float("inf")
-    certified = not queue and not interrupted and incumbent_selection is not None and certificate >= -1e-7
+    certified = (
+        not queue
+        and not interrupted
+        and incumbent_selection is not None
+        and certificate_is_feasible(instance, incumbent_selection)
+    )
     return {
         "status": "optimal" if certified else "time_limit",
         "objective": incumbent,

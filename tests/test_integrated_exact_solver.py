@@ -54,6 +54,48 @@ def test_interval_exact_solver_reports_valid_anytime_bounds() -> None:
     assert actual.upper_bound >= reference.objective_value - 1e-7
 
 
+def test_interval_solver_never_promotes_tolerance_infeasible_incumbent() -> None:
+    instance = PricingInstance(
+        items=[
+            [
+                Option(0.0, 2.5e-10, 0.0),
+                Option(100.0, -2.5e-10, 0.0),
+            ]
+        ],
+        gamma=0,
+    )
+    actual = solve_interval_exact(
+        instance,
+        IntervalExactConfig(time_limit_seconds=5.0),
+    )
+    assert actual.status == "optimal"
+    assert actual.objective_value == pytest.approx(0.0)
+    assert actual.selected_options == [0]
+
+
+def test_interval_exact_solver_preserves_cancelling_positive_capacity() -> None:
+    instance = PricingInstance(
+        items=[
+            [Option(1.0, -1e16, 0.0)],
+            [Option(2.0, 1.0, 0.0)],
+            [Option(3.0, 1e16, 0.0)],
+            [Option(4.0, -0.5, 0.0)],
+        ],
+        gamma=0,
+    )
+    actual = solve_interval_exact(
+        instance,
+        IntervalExactConfig(
+            tolerance=1e-12,
+            time_limit_seconds=5.0,
+            use_hullround_incumbent=False,
+        ),
+    )
+    assert actual.status == "optimal"
+    assert actual.objective_value == pytest.approx(10.0)
+    assert actual.selected_options == [0, 0, 0, 0]
+
+
 @pytest.mark.parametrize("bound_kind", ["envelope", "clique"])
 def test_exact_interval_solver_preserves_close_unique_feasible_breakpoint(
     bound_kind: str,
@@ -88,3 +130,24 @@ def test_exact_interval_solver_preserves_close_unique_feasible_breakpoint(
     assert actual.status == "optimal"
     assert actual.objective_value == pytest.approx(100.0)
     assert actual.selected_theta == pytest.approx(1.0 + delta, abs=0.0, rel=0.0)
+
+
+def test_interval_exact_solver_preserves_sub_ulp_objective_improvement() -> None:
+    instance = PricingInstance(
+        items=[
+            [Option(-1.3468787627424937e29, 0.0, 0.0)],
+            [Option(2.1267647932558654e37, 0.0, 0.0)],
+            [Option(0.0, 1.0, 0.0), Option(1.0, 0.0, 0.0)],
+        ],
+        gamma=0,
+    )
+    result = solve_interval_exact(
+        instance,
+        IntervalExactConfig(
+            tolerance=1e-300,
+            time_limit_seconds=5.0,
+            use_hullround_incumbent=True,
+        ),
+    )
+    assert result.status == "optimal"
+    assert result.selected_options == [0, 0, 1]

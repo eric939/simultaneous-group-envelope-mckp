@@ -3,13 +3,14 @@ TECTONIC ?= tectonic
 
 # Human-facing canonical locations. papers/current points to papers/v4.
 PAPER ?= papers/current
-RELEASE_RESULTS ?= results/release
+RELEASE_RESULTS ?= results/release/2026-08-09-paper-b-final-r4
 LOCAL_RESULTS ?= results/local
 LOCAL_PAPER ?= tmp/reproduction-paper
 CALIBRATION ?= $(RELEASE_RESULTS)/uci_calibration
 EXTERNAL_ARCHIVE ?= data_cache/RobustKnapsack.zip
+SOURCE_DATE_EPOCH ?= 1786233600
 
-.PHONY: install test check verify evidence exact-audit reproduce paper package \
+.PHONY: install test check verify evidence exact-audit reproduce paper package arxiv \
 	anonymous clean-preview clean v4-verify v4-evidence v4-exact-audit \
 	v4-reproduce v4-paper v4-package v4-anonymous-package
 
@@ -56,12 +57,12 @@ reproduce: test
 		--paper $(LOCAL_PAPER)
 
 paper:
-	cd $(PAPER) && $(TECTONIC) main.tex
-	cd $(PAPER) && $(TECTONIC) journal.tex
-	cd $(PAPER) && $(TECTONIC) journal-blind.tex
-	cd $(PAPER) && $(TECTONIC) companion.tex
-	cd $(PAPER) && $(TECTONIC) companion-blind.tex
-	cd $(PAPER) && $(TECTONIC) executive-summary.tex
+	cd $(PAPER) && env SOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH) TZ=UTC $(TECTONIC) main.tex
+	cd $(PAPER) && env SOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH) TZ=UTC $(TECTONIC) journal.tex
+	cd $(PAPER) && env SOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH) TZ=UTC $(TECTONIC) journal-blind.tex
+	cd $(PAPER) && env SOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH) TZ=UTC $(TECTONIC) companion.tex
+	cd $(PAPER) && env SOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH) TZ=UTC $(TECTONIC) companion-blind.tex
+	cd $(PAPER) && env SOURCE_DATE_EPOCH=$(SOURCE_DATE_EPOCH) TZ=UTC $(TECTONIC) executive-summary.tex
 
 package: paper
 	mkdir -p $(PAPER)/pdf
@@ -71,6 +72,9 @@ package: paper
 	cp $(PAPER)/companion.pdf $(PAPER)/pdf/companion.pdf
 	cp $(PAPER)/companion-blind.pdf $(PAPER)/pdf/companion-blind.pdf
 	cp $(PAPER)/executive-summary.pdf $(PAPER)/pdf/executive-summary.pdf
+
+arxiv: evidence
+	$(PYTHON) scripts/build_arxiv_source.py --output $(PAPER)/arxiv-paper-b-source.zip
 
 anonymous: verify paper
 	$(PYTHON) scripts/build_v4_anonymous_supplement.py \

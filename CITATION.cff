@@ -6,17 +6,17 @@ version: "0.2.0"
 license: "MIT"
 repository-code: "https://github.com/eric939/simultaneous-group-envelope-mckp"
 url: "https://github.com/eric939/simultaneous-group-envelope-mckp"
-date-released: 2026-08-01
+date-released: 2026-08-09
 authors:
   - family-names: "Shao"
-    given-names: "Eric"
+    given-names: "Zi Yuan Eric"
     affiliation: "Department of Mathematics, ETH Zürich"
     email: "ershao@student.ethz.ch"
 preferred-citation:
   type: article
   title: "Simultaneous Group-Envelope Bounds for Gamma-Robust Multiple-Choice Knapsack Problems"
   year: 2026
-  journal: "Manuscript submitted for publication"
+  journal: "Manuscript"
   authors:
     - family-names: "Shao"
-      given-names: "Eric"
+      given-names: "Zi Yuan Eric"

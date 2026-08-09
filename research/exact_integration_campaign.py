@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import itertools
 import json
 import math
 import os
 import platform
 import sys
+import time
 from pathlib import Path
 from statistics import median
 
 import numpy as np
+import scipy
 
 ROOT = Path(__file__).resolve().parents[1]
 for candidate in (ROOT, ROOT / "src"):
@@ -227,10 +230,31 @@ def run_campaign(
     (output_dir / "exact_integration_summary.json").write_text(
         json.dumps(summary, indent=2), encoding="utf-8"
     )
+    protocol_path = output_dir.parent / "protocol.json"
+    protocol_digest = (
+        hashlib.sha256(protocol_path.read_bytes()).hexdigest()
+        if protocol_path.is_file()
+        else None
+    )
+    try:
+        import pyscipopt
+
+        pyscipopt_version = getattr(pyscipopt, "__version__", "unknown")
+        scip_version = str(pyscipopt.Model().version())
+    except Exception as exc:  # pragma: no cover - recorded diagnostic fallback
+        pyscipopt_version = f"unavailable: {exc}"
+        scip_version = "unavailable"
     environment = {
-        "python": platform.python_version(),
+        "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "protocol_sha256": protocol_digest,
+        "python": sys.version,
+        "numpy": np.__version__,
+        "scipy": scipy.__version__,
+        "pyscipopt": pyscipopt_version,
+        "scip": scip_version,
         "platform": platform.platform(),
         "processor": platform.processor(),
+        "machine": platform.machine(),
         "thread_environment": {
             key: os.environ.get(key)
             for key in (

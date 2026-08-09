@@ -1,0 +1,28 @@
+{
+  "bootstrap_strata": "family_x_size",
+  "compressed_tolerance_rate": 1.0,
+  "families_with_median_speedup_gt_one": 4,
+  "family_median_speedup": {
+    "correlated_risk": 7.369991207728662,
+    "dense_frontier": 5.638465618443522,
+    "many_breakpoints": 3.627003863970602,
+    "near_tie": 5.821056211654723
+  },
+  "geomean_speedup": 5.364444940628586,
+  "geomean_speedup_ci95": [
+    5.364444940628586,
+    5.364444940628586
+  ],
+  "instances": 8,
+  "joint_tolerance_rate": 1.0,
+  "median_compressed_theta_fraction": 0.11538461538461539,
+  "median_speedup": 5.71861308880589,
+  "root_dominance_rate": 1.0,
+  "sign_test_pvalue": 0.00390625,
+  "size_geomean_speedup": {
+    "2880": 4.580600772563769,
+    "5760": 6.282422535795227
+  },
+  "win_rate": 1.0,
+  "wins": 8
+}

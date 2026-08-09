@@ -24,7 +24,7 @@ invariants. The primary deliverable is a faster complete threshold-disjunctive
 LP certificate that can serve as a root certificate or interval bound in an
 outer robust search.
 
-The closest published algorithmic system, DnC+, is not a scientifically
+The closest published algorithmic system identified in our review, DnC+, is not a scientifically
 matched runtime comparator for this claim: it combines threshold filtering,
 estimators, cuts, incumbent improvement, and early termination in a Java/Gurobi
 solver for objective uncertainty. We instead isolate the relevant
@@ -43,9 +43,9 @@ groups, and two separately scoped external-coefficient panels. In the fixed-desi
 60-instance primary comparison, both methods reach the same prescribed
 tolerance; every proposed interval bound carries a numerical minimization
 certificate, the method wins all paired timings, and the geometric-mean
-speedup is 2.33-fold with a design-stratified 95% interval of 2.16 to 2.51.
+speedup is 2.37-fold with a design-stratified 95% interval of 2.27 to 2.47.
 On nine coefficient sets transferred from a published robust-knapsack archive,
-it again wins every instance-level median comparison with a 2.31-fold geometric-mean speedup. A separate
+it again wins every instance-level median comparison with a 2.75-fold geometric-mean speedup. The UCI-calibrated pricing panel is retained as a negative boundary: both methods certify every case, but the compressed method is slower when the search evaluates only about 0.5% of thresholds as fixed LPs. A separate
 exact-integration audit is deliberately reported as a scope boundary: integer
 subproblem work can dominate, and the paper makes no claim of universal
 superiority over compact mixed-integer optimization.
@@ -72,6 +72,11 @@ records, environment records, tests, source hashes, and generators for every
 reported numerical artifact. A separate identity-scanned archive is available
 for anonymous review.
 
+OpenAI ChatGPT and Codex assisted with drafting and editing, code generation,
+and computational and mathematical audit. I independently reviewed the
+generated material, verified citations and reported results against primary
+sources and executable artifacts, and assume full responsibility for the work.
+
 The manuscript is not under review elsewhere, has not appeared in archival
 journal form, and presents original work. The author declares no relevant
 financial conflict of interest.
@@ -80,7 +85,7 @@ Thank you for your consideration.
 
 Sincerely,
 
-Eric Shao
+Zi Yuan Eric Shao
 
 Department of Mathematics, ETH Zürich
 

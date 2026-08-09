@@ -6,11 +6,12 @@ import itertools
 import math
 import time
 from dataclasses import dataclass, field
+from fractions import Fraction
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from .certificate import compute_certificate
+from .certificate import certificate_is_feasible, compute_certificate
 from .greedy import ItemLPPosition, LPSolution, greedy_lp
 from .hull import Hull, build_upper_hull
 from .model import PricingInstance
@@ -206,6 +207,10 @@ class FixedThetaData:
     capacity: float
     s_star_sum: float
     baseline_indices: List[int]
+    exact_costs: Tuple[Tuple[int, ...], ...] = field(default_factory=tuple)
+    exact_values: Tuple[Tuple[Fraction, ...], ...] = field(default_factory=tuple)
+    exact_capacity: Optional[int] = None
+    exact_scale_exponent: int = 0
 
 
 @dataclass(frozen=True)
@@ -297,6 +302,62 @@ def _finite_quantiles(values: Sequence[float]) -> Dict[str, float]:
     }
 
 
+def _fraction_to_float_down(value: Fraction) -> float:
+    try:
+        rounded = float(value)
+    except OverflowError:
+        return -math.inf if value < 0 else float(np.finfo(float).max)
+    if not math.isfinite(rounded):
+        return -math.inf if value < 0 else float(np.finfo(float).max)
+    if Fraction.from_float(rounded) > value:
+        rounded = float(np.nextafter(rounded, -math.inf))
+    return rounded
+
+
+def _fraction_to_float_up(value: Fraction) -> float:
+    try:
+        rounded = float(value)
+    except OverflowError:
+        return -float(np.finfo(float).max) if value < 0 else math.inf
+    if not math.isfinite(rounded):
+        return -float(np.finfo(float).max) if value < 0 else math.inf
+    if Fraction.from_float(rounded) < value:
+        rounded = float(np.nextafter(rounded, math.inf))
+    return rounded
+
+
+def _require_representable_objective_range(instance: PricingInstance) -> None:
+    """Reject inputs whose aggregate objective cannot be represented safely."""
+
+    lower = sum(
+        (
+            min(Fraction.from_float(float(option.value)) for option in group)
+            for group in instance.items
+        ),
+        Fraction(0),
+    )
+    upper = sum(
+        (
+            max(Fraction.from_float(float(option.value)) for option in group)
+            for group in instance.items
+        ),
+        Fraction(0),
+    )
+    maximum = Fraction.from_float(float(np.finfo(float).max))
+    if lower < -maximum or upper > maximum:
+        raise ValueError(
+            "aggregate objective range exceeds binary64; rescale objective "
+            "coefficients before using the certified solver"
+        )
+
+
+def _power_of_two_exponent(denominator: int) -> int:
+    exponent = denominator.bit_length() - 1
+    if denominator != 1 << exponent:
+        raise ValueError("binary64 rational denominator is not a power of two")
+    return exponent
+
+
 def build_fixed_theta_data(instance: PricingInstance, theta: float) -> FixedThetaData:
     """Build fixed-theta values, costs, and capacity for a PricingInstance."""
 
@@ -304,20 +365,86 @@ def build_fixed_theta_data(instance: PricingInstance, theta: float) -> FixedThet
     s_theta_values: List[np.ndarray] = []
     costs: List[np.ndarray] = []
     baseline_indices: List[int] = []
-    s_star_sum = 0.0
+    exact_theta = Fraction.from_float(float(theta))
+    exact_group_costs: List[List[Fraction]] = []
+    exact_stars: List[Fraction] = []
     for group in instance.items:
         v = np.array([opt.value for opt in group], dtype=float)
-        s = np.array([opt.margin for opt in group], dtype=float)
-        t = np.array([opt.uncertainty for opt in group], dtype=float)
-        s_theta = s - np.maximum(0.0, np.abs(t) - float(theta))
-        s_star = float(np.max(s_theta))
-        baseline_idx = int(np.argmax(s_theta))
+        exact_slacks = [
+            Fraction.from_float(float(opt.margin))
+            - max(
+                Fraction.from_float(abs(float(opt.uncertainty))) - exact_theta,
+                Fraction(0),
+            )
+            for opt in group
+        ]
+        exact_star = max(exact_slacks)
+        baseline_idx = exact_slacks.index(exact_star)
+        exact_cost_group = [exact_star - slack for slack in exact_slacks]
+        s_theta = np.asarray([float(slack) for slack in exact_slacks], dtype=float)
         values.append(v)
         s_theta_values.append(s_theta)
-        costs.append(np.maximum(s_star - s_theta, 0.0))
+        costs.append(
+            np.asarray(
+                [_fraction_to_float_down(cost) for cost in exact_cost_group],
+                dtype=float,
+            )
+        )
         baseline_indices.append(baseline_idx)
-        s_star_sum += s_star
-    capacity = s_star_sum - float(instance.gamma) * float(theta)
+        exact_group_costs.append(exact_cost_group)
+        exact_stars.append(exact_star)
+
+    exact_capacity_fraction = sum(exact_stars, Fraction(0)) - int(
+        instance.gamma
+    ) * exact_theta
+    scale_exponent = max(
+        [_power_of_two_exponent(exact_capacity_fraction.denominator)]
+        + [
+            _power_of_two_exponent(cost.denominator)
+            for group in exact_group_costs
+            for cost in group
+        ]
+    )
+
+    def scaled_integer(value: Fraction) -> int:
+        exponent = _power_of_two_exponent(value.denominator)
+        return int(value.numerator) << (scale_exponent - exponent)
+
+    exact_costs = tuple(
+        tuple(scaled_integer(cost) for cost in group)
+        for group in exact_group_costs
+    )
+    exact_capacity = scaled_integer(exact_capacity_fraction)
+    exact_values = tuple(
+        tuple(Fraction.from_float(float(option.value)) for option in group)
+        for group in instance.items
+    )
+
+    # The floating model is an outward relaxation used only for LP bounds and
+    # branching.  Exact scaled-integer comparisons decide feasibility.  The
+    # padding covers worst-case summation of one nonnegative cost per group.
+    maximum_cost_sum = sum(
+        (max(group, default=Fraction(0)) for group in exact_group_costs),
+        Fraction(0),
+    )
+    operation_count = max(1, len(exact_group_costs) + 2)
+    epsilon = math.ulp(1.0)
+    gamma = (operation_count * epsilon) / max(
+        1.0 - operation_count * epsilon, epsilon
+    )
+    maximum_cost_float = _fraction_to_float_up(maximum_cost_sum)
+    if math.isfinite(maximum_cost_float):
+        padding = float(np.nextafter(gamma * maximum_cost_float, math.inf))
+        capacity = _fraction_to_float_up(
+            exact_capacity_fraction + Fraction.from_float(padding)
+        )
+    else:
+        capacity = math.inf
+    exact_star_sum = sum(exact_stars, Fraction(0))
+    try:
+        s_star_sum = float(exact_star_sum)
+    except OverflowError:
+        s_star_sum = -math.inf if exact_star_sum < 0 else math.inf
     return FixedThetaData(
         values=values,
         s_theta=s_theta_values,
@@ -325,7 +452,167 @@ def build_fixed_theta_data(instance: PricingInstance, theta: float) -> FixedThet
         capacity=float(capacity),
         s_star_sum=s_star_sum,
         baseline_indices=baseline_indices,
+        exact_costs=exact_costs,
+        exact_values=exact_values,
+        exact_capacity=exact_capacity,
+        exact_scale_exponent=scale_exponent,
     )
+
+
+def _fixed_theta_selection_is_feasible(
+    data: FixedThetaData, selections: Sequence[int]
+) -> bool:
+    if len(selections) != len(data.costs):
+        return False
+    if not data.exact_costs or data.exact_capacity is None:
+        try:
+            used = sum(
+                (
+                    Fraction.from_float(float(data.costs[i][int(option)]))
+                    for i, option in enumerate(selections)
+                ),
+                Fraction(0),
+            )
+        except (IndexError, TypeError, ValueError):
+            return False
+        return used <= Fraction.from_float(float(data.capacity))
+    try:
+        used = sum(
+            data.exact_costs[i][int(option)]
+            for i, option in enumerate(selections)
+        )
+    except (IndexError, TypeError, ValueError):
+        return False
+    return used <= data.exact_capacity
+
+
+def _fixed_theta_partial_is_feasible(
+    data: FixedThetaData,
+    fixed: Sequence[int],
+    option_sets: Sequence[Sequence[int]],
+) -> bool:
+    if not data.exact_costs or data.exact_capacity is None:
+        used = Fraction(0)
+        capacity = Fraction.from_float(float(data.capacity))
+        for i, option in enumerate(fixed):
+            if int(option) >= 0:
+                used += Fraction.from_float(float(data.costs[i][int(option)]))
+            else:
+                options = option_sets[i]
+                if not options:
+                    return False
+                used += min(
+                    Fraction.from_float(float(data.costs[i][int(j)]))
+                    for j in options
+                )
+            if used > capacity:
+                return False
+        return used <= capacity
+    used = 0
+    for i, option in enumerate(fixed):
+        if int(option) >= 0:
+            used += data.exact_costs[i][int(option)]
+        else:
+            options = option_sets[i]
+            if not options:
+                return False
+            used += min(data.exact_costs[i][int(j)] for j in options)
+        if used > data.exact_capacity:
+            return False
+    return used <= data.exact_capacity
+
+
+def _fixed_theta_capacity_is_negative(data: FixedThetaData) -> bool:
+    if data.exact_capacity is not None:
+        return data.exact_capacity < 0
+    return float(data.capacity) < 0.0
+
+
+def _exact_upper_hull_indices(
+    costs: Sequence[int], values: Sequence[Fraction], options: Sequence[int]
+) -> List[int]:
+    """Return the exact upper hull over a subset of original options."""
+
+    best_at_cost: Dict[int, int] = {}
+    for option in options:
+        option = int(option)
+        cost = int(costs[option])
+        incumbent = best_at_cost.get(cost)
+        if incumbent is None or values[option] > values[incumbent]:
+            best_at_cost[cost] = option
+    ordered = [best_at_cost[cost] for cost in sorted(best_at_cost)]
+    nondominated: List[int] = []
+    best_value: Optional[Fraction] = None
+    for option in ordered:
+        if best_value is None or values[option] > best_value:
+            nondominated.append(option)
+            best_value = values[option]
+    hull: List[int] = []
+    for option in nondominated:
+        while len(hull) >= 2:
+            left, middle = hull[-2], hull[-1]
+            left_slope = (values[middle] - values[left]) / (
+                int(costs[middle]) - int(costs[left])
+            )
+            right_slope = (values[option] - values[middle]) / (
+                int(costs[option]) - int(costs[middle])
+            )
+            if left_slope > right_slope:
+                break
+            hull.pop()
+        hull.append(option)
+    return hull
+
+
+def _exact_fixed_theta_lp_value(
+    data: FixedThetaData,
+    fixed: Sequence[int],
+    option_sets: Sequence[Sequence[int]],
+) -> Optional[Fraction]:
+    """Return the exact LP value for a fixed/partially fixed theta node."""
+
+    if (
+        not data.exact_costs
+        or not data.exact_values
+        or data.exact_capacity is None
+    ):
+        return None
+    used_cost = 0
+    value = Fraction(0)
+    segments: List[Tuple[Fraction, int]] = []
+    for item, selected in enumerate(fixed):
+        if int(selected) >= 0:
+            option = int(selected)
+            used_cost += int(data.exact_costs[item][option])
+            value += data.exact_values[item][option]
+            continue
+        hull = _exact_upper_hull_indices(
+            data.exact_costs[item], data.exact_values[item], option_sets[item]
+        )
+        if not hull:
+            return None
+        base = hull[0]
+        used_cost += int(data.exact_costs[item][base])
+        value += data.exact_values[item][base]
+        for lower, upper in zip(hull[:-1], hull[1:]):
+            length = int(data.exact_costs[item][upper]) - int(
+                data.exact_costs[item][lower]
+            )
+            if length <= 0:
+                continue
+            change = data.exact_values[item][upper] - data.exact_values[item][lower]
+            if change > 0:
+                segments.append((change / length, length))
+    residual = int(data.exact_capacity) - used_cost
+    if residual < 0:
+        return None
+    for slope, length in sorted(segments, key=lambda row: row[0], reverse=True):
+        if residual <= 0:
+            break
+        take = min(length, residual)
+        value += take * slope
+        residual -= take
+    return value
 
 
 def _build_fixed_theta_cache(
@@ -337,7 +624,16 @@ def _build_fixed_theta_cache(
     """Build exact-safe cached structures for one fixed theta."""
 
     fixed_data = data if data is not None else build_fixed_theta_data(instance, theta)
-    option_sets = [nondominated_option_indices(c, v, tol) for v, c in zip(fixed_data.values, fixed_data.costs)]
+    if fixed_data.exact_costs:
+        option_sets = [
+            nondominated_option_indices_exact(c, v)
+            for v, c in zip(fixed_data.values, fixed_data.exact_costs)
+        ]
+    else:
+        option_sets = [
+            nondominated_option_indices(c, v, tol)
+            for v, c in zip(fixed_data.values, fixed_data.costs)
+        ]
     min_cost = [
         float(min(float(fixed_data.costs[i][j]) for j in opts)) if opts else float("inf")
         for i, opts in enumerate(option_sets)
@@ -358,7 +654,7 @@ def _build_fixed_theta_cache(
         hull_base_value.append(float(hull.values[0]) if hull.values.size else float("-inf"))
         max_value.append(float(max(float(fixed_data.values[i][j]) for j in opts)) if opts else float("-inf"))
         for k, (slope, length) in enumerate(zip(hull.slopes, hull.delta_costs)):
-            if float(length) > tol:
+            if float(length) > 0.0:
                 global_segments.append(CachedHullSegment(item=i, index=k, slope=float(slope), length=float(length)))
     global_segments.sort(key=lambda seg: (-seg.slope, int(seg.item), int(seg.index)))
     return FixedThetaCache(
@@ -406,11 +702,12 @@ def compute_fixed_theta_lp_upper_bound(
 ) -> FixedThetaLPBoundResult:
     """Compute a valid root LP upper bound for a fixed-theta MCKP."""
 
+    _require_representable_objective_range(instance)
     start = time.perf_counter()
     try:
         theta_cache = cache if cache is not None else _build_fixed_theta_cache(instance, theta, tol)
         data = theta_cache.data
-        if data.capacity < -tol:
+        if _fixed_theta_capacity_is_negative(data):
             return FixedThetaLPBoundResult(
                 theta=float(theta),
                 capacity=data.capacity,
@@ -421,35 +718,52 @@ def compute_fixed_theta_lp_upper_bound(
                 runtime_seconds=float(time.perf_counter() - start),
                 message="fixed-theta capacity is negative",
             )
-        hulls = theta_cache.per_item_hulls
-        if any(h.costs.size == 0 for h in hulls):
+        exact_lp_value = _exact_fixed_theta_lp_value(
+            data,
+            tuple(-1 for _ in range(instance.n_items)),
+            theta_cache.option_sets,
+        )
+        if exact_lp_value is None:
             return FixedThetaLPBoundResult(
                 theta=float(theta),
                 capacity=data.capacity,
                 lp_upper_bound=float("-inf"),
                 infeasible_capacity=False,
                 lp_feasible=False,
-                root_lp_status="empty_hull",
+                root_lp_status="infeasible",
                 runtime_seconds=float(time.perf_counter() - start),
-                message="empty hull",
+                message="exact fixed-threshold LP baseline exceeds capacity",
+            )
+        exact_lp_upper = _fraction_to_float_up(exact_lp_value)
+        hulls = theta_cache.per_item_hulls
+        if any(h.costs.size == 0 for h in hulls):
+            return FixedThetaLPBoundResult(
+                theta=float(theta),
+                capacity=data.capacity,
+                lp_upper_bound=float(exact_lp_upper),
+                infeasible_capacity=False,
+                lp_feasible=True,
+                root_lp_status="safe_value_fallback",
+                runtime_seconds=float(time.perf_counter() - start),
+                message="empty numerical hull; using trivial value upper bound",
             )
         lp = greedy_lp(hulls, data.capacity)
         if lp.total_cost > data.capacity + max(1.0, abs(data.capacity)) * tol:
             return FixedThetaLPBoundResult(
                 theta=float(theta),
                 capacity=data.capacity,
-                lp_upper_bound=float("-inf"),
+                lp_upper_bound=float(exact_lp_upper),
                 infeasible_capacity=False,
-                lp_feasible=False,
-                root_lp_status="lp_infeasible",
+                lp_feasible=True,
+                root_lp_status="safe_value_fallback",
                 fractional_item=lp.fractional_item,
                 runtime_seconds=float(time.perf_counter() - start),
-                message="LP baseline infeasible",
+                message="numerical LP baseline check failed; using trivial value upper bound",
             )
         return FixedThetaLPBoundResult(
             theta=float(theta),
             capacity=data.capacity,
-            lp_upper_bound=float(lp.lp_value),
+            lp_upper_bound=float(exact_lp_upper),
             infeasible_capacity=False,
             lp_feasible=True,
             root_lp_status="optimal",
@@ -462,7 +776,7 @@ def compute_fixed_theta_lp_upper_bound(
             capacity=float("nan"),
             lp_upper_bound=float("inf"),
             infeasible_capacity=False,
-            lp_feasible=False,
+            lp_feasible=True,
             root_lp_status="error",
             runtime_seconds=float(time.perf_counter() - start),
             message=str(exc),
@@ -470,8 +784,9 @@ def compute_fixed_theta_lp_upper_bound(
 
 
 def _dominates(cost_a: float, value_a: float, cost_b: float, value_b: float, tol: float) -> bool:
-    no_worse = cost_a <= cost_b + tol and value_a >= value_b - tol
-    strict = cost_a < cost_b - tol or value_a > value_b + tol
+    del tol
+    no_worse = cost_a <= cost_b and value_a >= value_b
+    strict = cost_a < cost_b or value_a > value_b
     return bool(no_worse and strict)
 
 
@@ -485,10 +800,11 @@ def nondominated_option_indices(costs: np.ndarray, values: np.ndarray, tol: floa
     """
 
     keep: List[int] = []
+    del tol
     for j in range(len(values)):
         duplicate_smaller_index = False
         for k in range(j):
-            if abs(float(costs[k]) - float(costs[j])) <= tol and abs(float(values[k]) - float(values[j])) <= tol:
+            if float(costs[k]) == float(costs[j]) and float(values[k]) == float(values[j]):
                 duplicate_smaller_index = True
                 break
         if duplicate_smaller_index:
@@ -498,9 +814,43 @@ def nondominated_option_indices(costs: np.ndarray, values: np.ndarray, tol: floa
         for k in range(len(values)):
             if k == j:
                 continue
-            if _dominates(float(costs[k]), float(values[k]), float(costs[j]), float(values[j]), tol):
+            if _dominates(float(costs[k]), float(values[k]), float(costs[j]), float(values[j]), 0.0):
                 dominated = True
                 break
+        if not dominated:
+            keep.append(j)
+    return keep
+
+
+def nondominated_option_indices_exact(
+    costs: Sequence[int], values: np.ndarray
+) -> List[int]:
+    """Return integer-safe nondominated indices using exact scaled costs.
+
+    The relaxed binary64 costs used by LP bounds can collapse two distinct
+    exact costs. They must therefore never decide which original integer
+    options survive branch-and-bound preprocessing.
+    """
+
+    keep: List[int] = []
+    for j in range(len(values)):
+        duplicate_smaller_index = any(
+            int(costs[k]) == int(costs[j])
+            and float(values[k]) == float(values[j])
+            for k in range(j)
+        )
+        if duplicate_smaller_index:
+            continue
+        dominated = any(
+            k != j
+            and int(costs[k]) <= int(costs[j])
+            and float(values[k]) >= float(values[j])
+            and (
+                int(costs[k]) < int(costs[j])
+                or float(values[k]) > float(values[j])
+            )
+            for k in range(len(values))
+        )
         if not dominated:
             keep.append(j)
     return keep
@@ -533,12 +883,29 @@ def validate_fixed_theta_selection(
     }
 
 
+def _selection_objective_fraction(
+    values: Sequence[np.ndarray], selections: Sequence[int]
+) -> Fraction:
+    return sum(
+        (
+            Fraction.from_float(float(values[i][int(j)]))
+            for i, j in enumerate(selections)
+        ),
+        Fraction(0),
+    )
+
+
 def objective_for_selection(values: Sequence[np.ndarray], selections: Sequence[int]) -> float:
-    return float(sum(float(values[i][int(j)]) for i, j in enumerate(selections)))
+    return float(_selection_objective_fraction(values, selections))
 
 
 def cost_for_selection(costs: Sequence[np.ndarray], selections: Sequence[int]) -> float:
-    return float(sum(float(costs[i][int(j)]) for i, j in enumerate(selections)))
+    try:
+        return float(
+            math.fsum(float(costs[i][int(j)]) for i, j in enumerate(selections))
+        )
+    except OverflowError:
+        return math.inf
 
 
 def _relative_gap(upper: float, lower: float, tol: float) -> float:
@@ -715,7 +1082,11 @@ def _greedy_incumbent(
         selections[i] = int(j)
         used += float(dc)
         value += float(dv)
-    return selections, float(value), float(used)
+    return (
+        selections,
+        objective_for_selection(values, selections),
+        cost_for_selection(costs, selections),
+    )
 
 
 def _local_improve_incumbent(
@@ -863,7 +1234,13 @@ def _local_improve_incumbent(
             value = value - float(values[i][improved[i]]) + float(values[i][j])
             improved[i] = int(j)
         swaps += 1
-    return improved, float(value), float(used), int(swaps), int(pair_evaluations)
+    return (
+        improved,
+        objective_for_selection(values, improved),
+        cost_for_selection(costs, improved),
+        int(swaps),
+        int(pair_evaluations),
+    )
 
 
 def _build_free_hulls(
@@ -882,16 +1259,16 @@ def _build_free_hulls(
 def _position_from_hull_cost(hull: Hull, cost: float) -> ItemLPPosition:
     costs = hull.costs
     values = hull.values
-    if cost <= costs[0] + EPS:
+    if cost <= costs[0]:
         return ItemLPPosition(lower_vertex=0, upper_vertex=0, lambda_=0.0, cost=float(costs[0]), value=float(values[0]))
-    if cost >= costs[-1] - EPS:
+    if cost >= costs[-1]:
         last = len(costs) - 1
         return ItemLPPosition(lower_vertex=last, upper_vertex=last, lambda_=0.0, cost=float(costs[-1]), value=float(values[-1]))
     k = int(np.searchsorted(costs, cost, side="right") - 1)
     k = max(0, min(k, len(costs) - 2))
     c0 = float(costs[k])
     c1 = float(costs[k + 1])
-    lam = 0.0 if abs(c1 - c0) <= EPS else (float(cost) - c0) / (c1 - c0)
+    lam = 0.0 if c1 == c0 else (float(cost) - c0) / (c1 - c0)
     lam = float(min(1.0, max(0.0, lam)))
     v0 = float(values[k])
     v1 = float(values[k + 1])
@@ -1028,19 +1405,19 @@ def _compute_bound_fast(
     extra_costs = np.zeros(len(theta_cache.per_item_hulls), dtype=float) if need_solution else None
 
     for seg in theta_cache.global_segments:
-        if residual <= tol:
+        if residual <= 0.0:
             break
         if fixed[seg.item] >= 0:
             continue
         take = min(float(seg.length), residual)
-        if take <= tol:
+        if take <= 0.0:
             continue
         if extra_costs is not None:
             extra_costs[seg.item] += take
         extra_value += take * float(seg.slope)
         filled += take
         residual -= take
-        if take + tol < float(seg.length):
+        if take < float(seg.length):
             fractional_global_item = int(seg.item)
             fractional_lambda = float(take / float(seg.length))
             break
@@ -1332,6 +1709,7 @@ def solve_fixed_theta_bnb(
     particular, below-upper-hull options are kept in the search.
     """
 
+    _require_representable_objective_range(instance)
     cfg = config or FixedThetaBNBConfig()
     tol = float(cfg.tolerance)
     start = time.perf_counter()
@@ -1395,7 +1773,7 @@ def solve_fixed_theta_bnb(
         diagnostics["time_fixed_theta_data"] = float(time.perf_counter() - data_start)
         data = theta_cache.data
         values, costs, capacity = data.values, data.costs, data.capacity
-        if capacity < -tol:
+        if _fixed_theta_capacity_is_negative(data):
             return _make_result(
                 status="infeasible",
                 theta=theta,
@@ -1440,7 +1818,9 @@ def solve_fixed_theta_bnb(
 
         min_cost = theta_cache.min_cost
         per_item_hulls = theta_cache.per_item_hulls if cfg.use_cache else None
-        if sum(min_cost) > capacity + tol:
+        if not _fixed_theta_partial_is_feasible(
+            data, tuple(-1 for _ in range(instance.n_items)), option_sets
+        ):
             return _make_result(
                 status="infeasible",
                 theta=theta,
@@ -1463,22 +1843,46 @@ def solve_fixed_theta_bnb(
 
         incumbent_selection: Optional[List[int]] = None
         incumbent_value = float("-inf")
+        incumbent_exact_value: Optional[Fraction] = None
         incumbent_cost = float("inf")
         if cfg.initial_incumbent_selection is not None:
             candidate_selection = list(map(int, cfg.initial_incumbent_selection))
             flags = validate_fixed_theta_selection(values, costs, capacity, candidate_selection, tol)
-            if all(flags.get(k, False) for k in ["valid_length", "valid_indices", "capacity_feasible"]):
+            if (
+                all(
+                    flags.get(k, False)
+                    for k in ["valid_length", "valid_indices", "capacity_feasible"]
+                )
+                and _fixed_theta_selection_is_feasible(data, candidate_selection)
+            ):
                 candidate_value = objective_for_selection(values, candidate_selection)
                 if cfg.initial_incumbent_value is None or abs(candidate_value - float(cfg.initial_incumbent_value)) <= max(1.0, abs(candidate_value)) * 1e-7:
                     incumbent_selection = candidate_selection
                     incumbent_value = candidate_value
+                    incumbent_exact_value = _selection_objective_fraction(
+                        values, candidate_selection
+                    )
                     incumbent_cost = cost_for_selection(costs, candidate_selection)
                     diagnostics["initial_incumbent_feasible_for_theta"] = True
         if cfg.use_greedy_incumbent:
             sel, val, used = _greedy_incumbent(values, costs, option_sets, capacity, tol)
-            if sel is not None and val > incumbent_value + tol:
+            candidate_exact = (
+                _selection_objective_fraction(values, sel)
+                if sel is not None
+                else None
+            )
+            if (
+                sel is not None
+                and _fixed_theta_selection_is_feasible(data, sel)
+                and candidate_exact is not None
+                and (
+                    incumbent_exact_value is None
+                    or candidate_exact > incumbent_exact_value
+                )
+            ):
                 incumbent_selection = sel
                 incumbent_value = val
+                incumbent_exact_value = candidate_exact
                 incumbent_cost = used
         if cfg.use_local_incumbent_improvement and incumbent_selection is not None:
             improved, improved_value, improved_cost, swaps, pair_evaluations = _local_improve_incumbent(
@@ -1495,9 +1899,17 @@ def solve_fixed_theta_bnb(
             )
             diagnostics["local_incumbent_swaps"] = int(diagnostics["local_incumbent_swaps"]) + int(swaps)
             diagnostics["local_incumbent_pair_evaluations"] = int(diagnostics["local_incumbent_pair_evaluations"]) + int(pair_evaluations)
-            if improved_value > incumbent_value + tol:
+            improved_exact = _selection_objective_fraction(values, improved)
+            if (
+                _fixed_theta_selection_is_feasible(data, improved)
+                and (
+                    incumbent_exact_value is None
+                    or improved_exact > incumbent_exact_value
+                )
+            ):
                 incumbent_selection = improved
                 incumbent_value = improved_value
+                incumbent_exact_value = improved_exact
                 incumbent_cost = improved_cost
                 diagnostics["local_incumbent_improved"] = True
         diagnostics["initial_incumbent_value"] = float(incumbent_value)
@@ -1521,6 +1933,13 @@ def solve_fixed_theta_bnb(
                     free_items = [i for i, j in enumerate(node.fixed) if j < 0]
                     return _BoundInfo(float(cached[0]), None, [], free_items, bool(cached[1]))
                 _diag_inc(diagnostics, "bound_cache_misses")
+            exact_partial_feasible = _fixed_theta_partial_is_feasible(
+                data, node.fixed, option_sets
+            )
+            if not exact_partial_feasible:
+                return _BoundInfo(
+                    float("-inf"), None, [], _free_items_from_node(node), True
+                )
             bound = _compute_bound(
                 node,
                 theta_cache,
@@ -1534,6 +1953,33 @@ def solve_fixed_theta_bnb(
                 diagnostics=diagnostics if profile_timing or cfg.collect_diagnostics else None,
                 profile_timing=profile_timing,
             )
+            exact_lp_value: Optional[Fraction] = None
+            if data.exact_costs and data.exact_values and data.exact_capacity is not None:
+                exact_lp_value = _exact_fixed_theta_lp_value(
+                    data, node.fixed, option_sets
+                )
+                if exact_lp_value is None:
+                    return _BoundInfo(
+                        float("-inf"), None, [], _free_items_from_node(node), True
+                    )
+                bound.upper_bound = _fraction_to_float_up(exact_lp_value)
+            if bound.infeasible:
+                # The floating LP path is an outward relaxation, but retain a
+                # fail-closed exact fallback against any residual summation
+                # edge case: branch under the trivial value upper bound rather
+                # than pruning an exactly feasible node.
+                free_items = _free_items_from_node(node)
+                fallback_upper = (
+                    _fraction_to_float_up(exact_lp_value)
+                    if exact_lp_value is not None
+                    else float(
+                        node.fixed_value
+                        + math.fsum(theta_cache.max_value[i] for i in free_items)
+                    )
+                )
+                bound = _BoundInfo(
+                    fallback_upper, None, [], free_items, False
+                )
             if cfg.use_bound_cache and not need_solution and len(bound_cache) < cfg.bound_cache_max_entries:
                 bound_cache[node.fixed] = (float(bound.upper_bound), bool(bound.infeasible))
             return bound
@@ -1566,9 +2012,9 @@ def solve_fixed_theta_bnb(
                 diagnostics=diagnostics,
                 message="root node is infeasible",
             )
-        if root_bound.upper_bound <= prune_threshold() + tol:
+        if root_bound.upper_bound < prune_threshold():
             note_bound_prune(root_bound.upper_bound)
-            status = "optimal" if incumbent_selection is not None and incumbent_value + tol >= root_bound.upper_bound else "cutoff_pruned"
+            status = "optimal" if incumbent_selection is not None else "cutoff_pruned"
             upper = incumbent_value if status == "optimal" else max(prune_threshold(), incumbent_value)
             return _make_result(
                 status=status,
@@ -1617,7 +2063,7 @@ def solve_fixed_theta_bnb(
                 break
 
             _, _, _, node = heapq.heappop(live)
-            if node.upper_bound <= prune_threshold() + tol:
+            if node.upper_bound < prune_threshold():
                 note_bound_prune(node.upper_bound)
                 nodes_pruned_bound += 1
                 continue
@@ -1648,17 +2094,21 @@ def solve_fixed_theta_bnb(
                     sample_rate=cfg.diagnostic_sample_rate,
                     sample_index=nodes_explored,
                 )
-            if bound_info.upper_bound <= prune_threshold() + tol:
+            if bound_info.upper_bound < prune_threshold():
                 note_bound_prune(bound_info.upper_bound)
                 nodes_pruned_bound += 1
                 continue
 
             integral = _lp_integral_completion(node, bound_info, values, costs, capacity, tol)
             if integral is not None:
-                nodes_integral += 1
-                _diag_inc(diagnostics, "nodes_integral_lp")
                 sel, val, used = integral
-                if cfg.use_local_incumbent_improvement:
+                exact_integral_feasible = _fixed_theta_selection_is_feasible(
+                    data, sel
+                )
+                if exact_integral_feasible:
+                    nodes_integral += 1
+                    _diag_inc(diagnostics, "nodes_integral_lp")
+                if exact_integral_feasible and cfg.use_local_incumbent_improvement:
                     improved, improved_value, improved_cost, swaps, pair_evaluations = _local_improve_incumbent(
                         values,
                         costs,
@@ -1673,14 +2123,26 @@ def solve_fixed_theta_bnb(
                     )
                     diagnostics["local_incumbent_swaps"] = int(diagnostics["local_incumbent_swaps"]) + int(swaps)
                     diagnostics["local_incumbent_pair_evaluations"] = int(diagnostics["local_incumbent_pair_evaluations"]) + int(pair_evaluations)
-                    if improved_value > val + tol:
+                    if (
+                        _fixed_theta_selection_is_feasible(data, improved)
+                        and _selection_objective_fraction(values, improved)
+                        > _selection_objective_fraction(values, sel)
+                    ):
                         sel, val, used = improved, improved_value, improved_cost
                         diagnostics["local_incumbent_improved"] = True
-                if val > incumbent_value + tol:
+                candidate_exact = _selection_objective_fraction(values, sel)
+                if exact_integral_feasible and (
+                    incumbent_exact_value is None
+                    or candidate_exact > incumbent_exact_value
+                ):
                     incumbent_selection = sel
                     incumbent_value = val
+                    incumbent_exact_value = candidate_exact
                     incumbent_cost = used
-                continue
+                if exact_integral_feasible or not bound_info.free_items:
+                    if not exact_integral_feasible:
+                        nodes_pruned_infeasible += 1
+                    continue
 
             branch_start = time.perf_counter()
             def branch_child_bound(item: int, opt: int) -> float:
@@ -1697,7 +2159,9 @@ def solve_fixed_theta_bnb(
                     depth=node.depth + 1,
                     tie_key=node.tie_key + (item, int(opt)),
                 )
-                if used_cost + sum(min_cost[i] for i, j in enumerate(fixed_tuple) if j < 0) > capacity + tol:
+                if not _fixed_theta_partial_is_feasible(
+                    data, fixed_tuple, option_sets
+                ):
                     return float("-inf")
                 bound = compute_node_bound(child, need_solution=False)
                 return float(bound.upper_bound)
@@ -1747,7 +2211,9 @@ def solve_fixed_theta_bnb(
                 fixed_value = node.fixed_value + float(values[branch_item][opt])
                 fixed_tuple = tuple(fixed_list)
                 free_items = [i for i, j in enumerate(fixed_tuple) if j < 0]
-                if used_cost + sum(min_cost[i] for i in free_items) > capacity + tol:
+                if not _fixed_theta_partial_is_feasible(
+                    data, fixed_tuple, option_sets
+                ):
                     nodes_pruned_infeasible += 1
                     continue
                 child = _Node(
@@ -1766,7 +2232,7 @@ def solve_fixed_theta_bnb(
                 if child_bound.infeasible:
                     nodes_pruned_infeasible += 1
                     continue
-                if child_bound.upper_bound <= prune_threshold() + tol:
+                if child_bound.upper_bound < prune_threshold():
                     note_bound_prune(child_bound.upper_bound)
                     nodes_pruned_bound += 1
                     continue
@@ -1868,20 +2334,31 @@ def solve_fixed_theta_bnb(
 def brute_force_fixed_theta(instance: PricingInstance, theta: float, tol: float = EPS) -> FixedThetaBNBResult:
     """Brute-force fixed-theta MCKP solver for tiny test instances only."""
 
+    _require_representable_objective_range(instance)
     start = time.perf_counter()
     data = build_fixed_theta_data(instance, theta)
     best_sel: Optional[List[int]] = None
     best_obj = float("-inf")
+    best_exact_obj: Optional[Fraction] = None
     best_cost = float("inf")
-    if data.capacity >= -tol:
+    if not _fixed_theta_capacity_is_negative(data):
         ranges = [range(len(group)) for group in instance.items]
         for combo in itertools.product(*ranges):
             used = cost_for_selection(data.costs, combo)
-            if used > data.capacity + tol:
+            if not _fixed_theta_selection_is_feasible(data, combo):
                 continue
             obj = objective_for_selection(data.values, combo)
-            if obj > best_obj + tol or (abs(obj - best_obj) <= tol and list(combo) < (best_sel or [math.inf])):
+            exact_obj = _selection_objective_fraction(data.values, combo)
+            if (
+                best_exact_obj is None
+                or exact_obj > best_exact_obj
+                or (
+                    exact_obj == best_exact_obj
+                    and list(combo) < (best_sel or [math.inf])
+                )
+            ):
                 best_obj = obj
+                best_exact_obj = exact_obj
                 best_sel = list(map(int, combo))
                 best_cost = used
     status = "optimal" if best_sel is not None else "infeasible"
@@ -1936,7 +2413,7 @@ def _validate_global_selection(instance: PricingInstance, selections: Optional[S
         "valid_selection_length": bool(valid_length),
         "valid_selection_indices": bool(valid_indices),
         "objective_matches": bool(valid_indices and abs(obj - objective_value) <= tol),
-        "robust_certificate_feasible": bool(valid_indices and cert >= -tol),
+        "robust_certificate_feasible": bool(valid_indices and certificate_is_feasible(instance, selections)),
     }
 
 
@@ -2036,6 +2513,7 @@ def solve_global_theta_bnb(
     or an infeasible root receive ``-inf``.
     """
 
+    _require_representable_objective_range(instance)
     cfg = config or GlobalThetaBNBConfig()
     tol = float(cfg.tolerance)
     start = time.perf_counter()
@@ -2047,17 +2525,25 @@ def solve_global_theta_bnb(
     total_root_lp_time = 0.0
     total_bnb_time = 0.0
     diagnostics: Dict[str, object] = {"theta_order": cfg.theta_order}
+    objective_arrays = [
+        np.asarray([option.value for option in group], dtype=float)
+        for group in instance.items
+    ]
 
     incumbent_selection: Optional[List[int]] = None
     incumbent_value = float("-inf")
+    incumbent_exact_value: Optional[Fraction] = None
     incumbent_theta: Optional[float] = None
 
     if cfg.use_hullround_incumbent:
         try:
             hr = solve_hullround(instance, upgrade_completion=True)
-            if hr.is_feasible and hr.selections and compute_certificate(instance, hr.selections) >= -tol:
+            if hr.is_feasible and hr.selections and certificate_is_feasible(instance, hr.selections):
                 incumbent_selection = list(map(int, hr.selections))
-                incumbent_value = float(hr.objective)
+                incumbent_exact_value = _selection_objective_fraction(
+                    objective_arrays, incumbent_selection
+                )
+                incumbent_value = float(incumbent_exact_value)
                 incumbent_theta = float(hr.theta)
         except Exception:
             pass
@@ -2150,7 +2636,10 @@ def solve_global_theta_bnb(
             [float("-inf")]
             + [float(get_lp_bound(th).lp_upper_bound) for th in ranked_all if math.isfinite(get_lp_bound(th).lp_upper_bound)]
         )
-        multistart_skipped_closed = bool(math.isfinite(incumbent_value) and incumbent_value >= max_root_lp_bound - tol)
+        multistart_skipped_closed = bool(
+            math.isfinite(incumbent_value)
+            and incumbent_value > max_root_lp_bound
+        )
         ranked_for_seed = [] if multistart_skipped_closed else ranked_all[: max(0, int(cfg.multistart_theta_count))]
         for seed_theta in ranked_for_seed:
             lp = get_lp_bound(seed_theta)
@@ -2182,12 +2671,19 @@ def solve_global_theta_bnb(
             if not (flags["valid_length"] and flags["valid_indices"] and flags["capacity_feasible"]):
                 continue
             cert = compute_certificate(instance, sel)
-            if cert < -tol:
+            if not certificate_is_feasible(instance, sel):
                 continue
             seed_robust_feasible += 1
-            if val > incumbent_value + tol:
+            candidate_exact = _selection_objective_fraction(
+                cache.data.values, sel
+            )
+            if (
+                incumbent_exact_value is None
+                or candidate_exact > incumbent_exact_value
+            ):
                 incumbent_selection = list(map(int, sel))
                 incumbent_value = float(val)
+                incumbent_exact_value = candidate_exact
                 incumbent_theta = float(seed_theta)
                 seed_improvements += 1
         diagnostics.update(
@@ -2245,12 +2741,19 @@ def solve_global_theta_bnb(
                     if flags["valid_length"] and flags["valid_indices"] and flags["capacity_feasible"]:
                         heuristic_fixed_feasible += 1
                         cert = compute_certificate(instance, sel)
-                        if cert >= -tol:
+                        if certificate_is_feasible(instance, sel):
                             heuristic_robust_feasible += 1
                             robust_value = float(val)
-                            if robust_value > incumbent_value + tol:
+                            candidate_exact = _selection_objective_fraction(
+                                cache.data.values, sel
+                            )
+                            if (
+                                incumbent_exact_value is None
+                                or candidate_exact > incumbent_exact_value
+                            ):
                                 incumbent_selection = list(map(int, sel))
                                 incumbent_value = robust_value
+                                incumbent_exact_value = candidate_exact
                                 incumbent_theta = float(theta)
                                 heuristic_incumbent_improvements += 1
             heuristic_order_scores[float(theta)] = (robust_value, lp_score, -float(theta))
@@ -2425,7 +2928,7 @@ def solve_global_theta_bnb(
             )
             continue
 
-        if lp_bound.lp_upper_bound <= incumbent_value + tol:
+        if lp_bound.lp_upper_bound < incumbent_value:
             theta_upper_bounds.append(lp_bound.lp_upper_bound)
             records.append(
                 GlobalThetaRecord(
@@ -2444,7 +2947,8 @@ def solve_global_theta_bnb(
                     root_lp_status=lp_bound.root_lp_status,
                     incumbent_after_theta=incumbent_value,
                     root_lp_runtime_seconds=lp_bound.runtime_seconds,
-                    robust_certificate_passed=incumbent_selection is not None and compute_certificate(instance, incumbent_selection) >= -tol,
+                    robust_certificate_passed=incumbent_selection is not None
+                    and certificate_is_feasible(instance, incumbent_selection),
                 )
             )
             continue
@@ -2524,15 +3028,24 @@ def solve_global_theta_bnb(
             message = bnb.message
 
         robust_passed = False
-        if bnb.selected_options is not None and bnb.objective_value > incumbent_value + tol:
+        bnb_exact_value = (
+            _selection_objective_fraction(objective_arrays, bnb.selected_options)
+            if bnb.selected_options is not None
+            else None
+        )
+        if bnb.selected_options is not None and bnb_exact_value is not None and (
+            incumbent_exact_value is None
+            or bnb_exact_value > incumbent_exact_value
+        ):
             cert = compute_certificate(instance, bnb.selected_options)
-            if cert >= -tol:
+            if certificate_is_feasible(instance, bnb.selected_options):
                 incumbent_selection = list(map(int, bnb.selected_options))
                 incumbent_value = float(bnb.objective_value)
+                incumbent_exact_value = bnb_exact_value
                 incumbent_theta = float(theta)
                 robust_passed = True
         elif bnb.selected_options is not None:
-            robust_passed = compute_certificate(instance, bnb.selected_options) >= -tol
+            robust_passed = certificate_is_feasible(instance, bnb.selected_options)
 
         records.append(
             GlobalThetaRecord(
@@ -2696,16 +3209,31 @@ def solve_global_theta_bnb(
 def brute_force_global_robust(instance: PricingInstance, tol: float = EPS) -> GlobalThetaBNBResult:
     """Brute-force global robust MCKP solver for tiny tests only."""
 
+    _require_representable_objective_range(instance)
     start = time.perf_counter()
     best_sel: Optional[List[int]] = None
     best_obj = float("-inf")
+    best_exact_obj: Optional[Fraction] = None
+    objective_arrays = [
+        np.asarray([option.value for option in group], dtype=float)
+        for group in instance.items
+    ]
     for combo in itertools.product(*[range(len(group)) for group in instance.items]):
         cert = compute_certificate(instance, combo)
-        if cert < -tol:
+        if not certificate_is_feasible(instance, combo):
             continue
-        obj = _robust_objective(instance, combo)
-        if obj > best_obj + tol or (abs(obj - best_obj) <= tol and list(combo) < (best_sel or [math.inf])):
+        exact_obj = _selection_objective_fraction(objective_arrays, combo)
+        obj = float(exact_obj)
+        if (
+            best_exact_obj is None
+            or exact_obj > best_exact_obj
+            or (
+                exact_obj == best_exact_obj
+                and list(combo) < (best_sel or [math.inf])
+            )
+        ):
             best_obj = obj
+            best_exact_obj = exact_obj
             best_sel = list(map(int, combo))
     records: List[GlobalThetaRecord] = []
     status = "optimal" if best_sel is not None else "infeasible"
