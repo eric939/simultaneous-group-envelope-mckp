@@ -113,6 +113,8 @@ This paper identifies a cancellation created by the exactly-one equations.  Afte
 
 The paper makes four contributions.  First, it derives the cancellation and a two-envelope algorithm that evaluates a multiplier over all thresholds at once.  Second, it proves exact-minimax dominance over the closest bounded-threshold group-clique relaxation and supplies a convex bracketing procedure that transfers the theorem to the implemented bound up to an explicit tolerance.  Third, it embeds the certified bound in an adaptive decomposition with global-bound invariants and a separately scoped exact-integer extension.  Fourth, a fixed-design study separates algebra, multiplier certification, kernel scaling, matched-interval behavior, complete-certificate time, robustness, and external-coefficient transfer.  The comparator is deliberately component-matched: the clique relaxation and the envelope bound are placed under the same search, fixed-threshold solver, stopping rule, and timing policy.  The contribution is the simultaneous parametric bound, not a new uncertainty set, a faster algorithm for one knapsack relaxation, a reproduction of a complete DnC+ implementation, or universal superiority of an integer solver.
 
+The relationship to the author's companion pricing paper is deliberately one-directional.  \citet{Shao2026PaperA} derives the finite-menu robust-pricing model, its exact full-breakpoint MCKP decomposition, the fixed-threshold hull relaxation and one-item rounding certificate, and exact full-family search.  The present paper accepts that scalar threshold family as input and changes the computational objective: it certifies the maximum LP value over many thresholds through one-multiplier simultaneous evaluation and interval minimax bounds.  The baseline cancellation, two-envelope data structure, minimax-dominance theorem, certified multiplier search, and matched-interval experiments appear only here.  Thus Paper~A supplies the model and certifying fixed-threshold foundation; Paper~B supplies an all-threshold LP-family accelerator that can be placed on top of it.
+
 \section{Robust MCKP and prior-art boundary}\label{sec:problem}
 
 \subsection{The \texorpdfstring{$\Gamma$}{Gamma}-robust MCKP}
@@ -159,6 +161,8 @@ For completeness, threshold sufficiency follows directly from convexity.  For a 
 
 \subsection{Finite-menu pricing: MCKP derivation and use}\label{sec:pricing-specialization}
 
+This specialization follows the certifying finite-menu pricing framework of \citet{Shao2026PaperA}; the derivation is repeated here only to make the input to the all-threshold oracle explicit.
+
 Finite-menu pricing supplies one operational specialization.  Product $i$ has reference price $\bar p_i>0$, exposure $w_i\ge0$, and admissible prices $p_{ij}>0$, $j\in J_i$; admissibility can encode the reference band $p_{ij}\in[(1-\sigma_i)\bar p_i,(1+\sigma_i)\bar p_i]$ for $\sigma_i\in[0,1)$.  Binary $x_{ij}$ selects exactly one price, so products are the MCKP groups and candidate prices are their options.  At option $j$, demand is $\widetilde g_{ij}=\hat g_{ij}+\xi_i\delta_{ij}$, where $0\le\delta_{ij}\le\hat g_{ij}$, $|\xi_i|\le1$, and $\sum_i|\xi_i|\le\Gamma$.  Let $\widetilde N(x,\xi):=\sum_{i,j}w_ip_{ij}\widetilde g_{ij}x_{ij}$ and $\widetilde D(x,\xi):=\sum_{i,j}w_i\bar p_i\widetilde g_{ij}x_{ij}$.  Nominal revenue $\widetilde N(x,0)$ is maximized subject to $\widetilde N(x,\xi)/\widetilde D(x,\xi)\ge\Delta$ for every admissible $\xi$.
 
 If $\widetilde D>0$ throughout, the robust ratio constraint is equivalent to requiring the worst-case residual $\widetilde N-\Delta\widetilde D$ to be nonnegative.  Because exactly one option is selected per product, adverse signs subtract the $\Gamma$ largest absolute selected residual deviations:
@@ -197,6 +201,7 @@ The formulation component must be distinguished from the complete algorithms in 
 Stream & Established operation & Treatment here \\
 \midrule
 Bertsimas--Sim and filtered enumeration & Solve a finite, possibly reduced set of nominal threshold problems & Simultaneously evaluates a Lagrangian multiplier over all thresholds \\\addlinespace[4pt]
+Companion Paper~A \citep{Shao2026PaperA} & Derives robust pricing, the exact full-breakpoint MCKP family, fixed-threshold hull/rounding certificates, and exact full-family search & Takes that family as input and accelerates certification of its maximum LP value; does not repeat Paper~A's pricing or rounding contribution \\\addlinespace[4pt]
 Fast fixed MCKP LP & Solves one MCKP relaxation using hull or partition structure & Amortizes evaluation across a parameterized family; does not improve the one-LP complexity \\\addlinespace[4pt]
 Divide-and-conquer & Avoids threshold solves using monotonicity & Replaces an interval LP by a direct exactly-one group-envelope bound \\\addlinespace[4pt]
 Strong and bounded-threshold formulations & Strengthen or linearize the robust model over a threshold interval & Proves objective-bound dominance over the group-clique interval LP without introducing a new robust formulation \\\addlinespace[4pt]
@@ -742,6 +747,17 @@ Monaci, M., Pferschy, U., and Serafini, P. (2013).
 \newblock Exact solution of the robust knapsack problem.
 \newblock \emph{Computers \& Operations Research}, 40, 2625--2631.
 \newblock \href{https://doi.org/10.1016/j.cor.2013.05.005}{doi:10.1016/j.cor.2013.05.005}.
+
+\ifblind
+\bibitem[Anonymous(2026)]{Shao2026PaperA}
+Anonymous (2026).
+\else
+\bibitem[Shao(2026)]{Shao2026PaperA}
+Shao, E. (2026).
+\fi
+\newblock A certifying MCKP framework for $\Gamma$-robust discrete pricing.
+\newblock \emph{arXiv preprint arXiv:2603.18653}, version 2.
+\newblock \href{https://arxiv.org/abs/2603.18653}{arXiv:2603.18653}.
 
 \bibitem[Sinha and Zoltners(1979)]{SinhaZoltners1979}
 Sinha, P. and Zoltners, A.~A. (1979).

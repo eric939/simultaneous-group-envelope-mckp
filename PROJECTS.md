@@ -6,16 +6,20 @@ under a new identifier.
 
 The separate repository
 [`eric939/robust_pricing_mckp`](https://github.com/eric939/robust_pricing_mckp)
-is **Paper A**, the continuation of arXiv:2603.18653. Paper A is being revised
-and frozen as version 2 before Paper B is submitted.
+is **Paper A**, the continuation of arXiv:2603.18653. Paper A has been revised
+and frozen as version 2 before Paper B is submitted. Its definitive title is
+*A Certifying MCKP Framework for Gamma-Robust Discrete Pricing*, and its public
+repository is frozen on `main` at merge commit
+`924fed52f5c8a2cd995e7102c3f42655c91e06f6`.
 
 ## Relationship
 
-Paper A establishes the robust finite-menu pricing model, its full-breakpoint
-MCKP decomposition, fixed-threshold LP and rounding structure, and exact
-certification machinery. Paper B takes the resulting family of fixed-threshold
-MCKP relaxations as its starting point and asks a new question: how can their
-largest LP value be bounded without solving or materializing every relaxation?
+Paper A establishes the robust finite-menu pricing model, its exact
+full-breakpoint MCKP decomposition, fixed-threshold LP hull and one-item
+rounding certificate, and exact full-family search. Paper B cites that result
+and takes the resulting family of fixed-threshold MCKP relaxations as its
+starting point. It asks a different question: how can the largest LP value over
+that family be certified without solving or materializing every relaxation?
 
 Paper B answers that question with the exactly-one baseline cancellation,
 simultaneous group-envelope evaluation, interval minimax-dominance theorem,
@@ -40,13 +44,14 @@ release.
 
 ## Release sequence
 
-1. Finish and verify Paper A in `robust_pricing_mckp`.
-2. Submit and freeze arXiv:2603.18653v2.
+1. Finish and verify Paper A in `robust_pricing_mckp`. **Complete.**
+2. Submit and freeze arXiv:2603.18653v2. **Verified source package ready; arXiv
+   account submission pending.**
 3. Update Paper B's citation and relationship wording to the frozen Paper A
-   metadata.
+   metadata. **Complete in the current working branch.**
 4. Verify every Paper B variant, anonymous supplement, and release manifest.
 5. Submit Paper B under a new arXiv identifier.
 
-The current Paper B manuscript already contains the substantive overlap
-disclosure in its pricing-specialization section. Its bibliography metadata
-must be updated only after Paper A's v2 title and version are final.
+The current Paper B manuscript contains the substantive overlap disclosure in
+its introduction and pricing-specialization section, and its bibliography uses
+Paper A's frozen v2 title and version.
