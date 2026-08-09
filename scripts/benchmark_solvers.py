@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal open-source MILP baselines used by the v3 experiment driver."""
+"""Minimal open-source MILP baselines used by the research audits."""
 from __future__ import annotations
 
 import math

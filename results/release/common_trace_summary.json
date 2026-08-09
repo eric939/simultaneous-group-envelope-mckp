@@ -1,0 +1,9 @@
+{
+  "all_compressed_bounds_certified": true,
+  "bound_dominance_rate": 1.0,
+  "geomean_speedup": 2.5304372660950722,
+  "instances": 24,
+  "interval_evaluations": 168,
+  "maximum_scaled_certificate_gap": 9.562669534384429e-09,
+  "wins": 24
+}

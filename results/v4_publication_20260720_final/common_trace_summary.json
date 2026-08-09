@@ -1,7 +1,0 @@
-{
-  "bound_dominance_rate": 1.0,
-  "geomean_speedup": 3.2721951148326895,
-  "instances": 24,
-  "interval_evaluations": 168,
-  "wins": 24
-}

@@ -23,7 +23,7 @@ for candidate in (ROOT, ROOT / "src"):
 from robust_mckp.exact_bnb import GlobalThetaBNBConfig, solve_global_theta_bnb
 from research.integrated_exact_solver import IntervalExactConfig, solve_interval_exact
 from research.structural_feasibility_study import solve_scip_with_conflicts
-from scripts.run_v3_experiments import build_hard_instance
+from research.benchmark_instances import build_benchmark_instance
 
 
 FAMILIES = ("dense_frontier", "correlated_risk", "near_tie", "many_breakpoints")
@@ -112,7 +112,7 @@ def run_campaign(
     summary_rows: list[dict] = []
 
     for family, n, seed in itertools.product(FAMILIES, sizes, seeds):
-        instance = build_hard_instance(family, n, 6, max(1, int(math.sqrt(n))), seed)
+        instance = build_benchmark_instance(family, n, 6, max(1, int(math.sqrt(n))), seed)
         by_method: dict[str, list[dict]] = {method: [] for method in methods}
         for repeat in range(repetitions):
             rotation = (repeat + seed + n) % len(methods)
@@ -233,7 +233,13 @@ def run_campaign(
         "processor": platform.processor(),
         "thread_environment": {
             key: os.environ.get(key)
-            for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS")
+            for key in (
+                "OMP_NUM_THREADS",
+                "MKL_NUM_THREADS",
+                "OPENBLAS_NUM_THREADS",
+                "VECLIB_MAXIMUM_THREADS",
+                "NUMEXPR_NUM_THREADS",
+            )
         },
     }
     (output_dir / "environment_exact_integration.json").write_text(

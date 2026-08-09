@@ -1,0 +1,451 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext,newtxmath}
+\usepackage[final]{microtype}
+\usepackage[margin=1in]{geometry}
+\let\openbox\relax
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{booktabs,array}
+\usepackage[font=small,labelfont=bf,labelsep=period]{caption}
+\usepackage[authoryear,round]{natbib}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\usepackage[capitalize,nameinlink]{cleveref}
+\usepackage{xurl}
+\usepackage{setspace}
+
+\onehalfspacing
+\setlength{\parindent}{1.5em}
+\setlength{\parskip}{0pt}
+\emergencystretch=2em
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\R}{\mathbb R}
+\newcommand{\B}{\mathcal B}
+\newcommand{\pos}[1]{[#1]_+}
+
+\title{Certifying $\Gamma$-Robust Discrete Pricing via Full-Breakpoint\\
+Multiple-Choice Knapsack Decomposition\\[0.7em]
+\large V3 Legacy Reconstruction}
+\author{Zi Yuan Eric Shao\\
+\small Department of Mathematics, ETH Z\"urich}
+\date{Original V3 research line: May 2026\\
+Legacy reconstruction compiled: July 2026}
+
+\hypersetup{
+  pdftitle={Certifying Gamma-Robust Discrete Pricing via Full-Breakpoint Multiple-Choice Knapsack Decomposition - V3 Legacy Reconstruction},
+  pdfauthor={Zi Yuan Eric Shao},
+  pdfsubject={Transparent reconstruction from the V2 arXiv source and final V3 code archive}
+}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\fbox{\begin{minipage}{0.91\textwidth}
+\textbf{Archival status.}
+The original V3 manuscript source and compiled PDF were stored only in an
+ignored local artifact directory and are no longer available. This document
+is a transparent legacy reconstruction from the exact arXiv v1 source of the
+preceding paper, the final V3 code snapshot at Git commit
+\texttt{2e2829e55243b846e5944965a839eb9b28dd5e9c}, and that snapshot's
+\texttt{README}, \texttt{REVISION\_HISTORY}, \texttt{SUBMISSION}, tests, and
+experiment drivers. It is not represented as a byte-identical copy of the
+lost manuscript. Statements unsupported by preserved outputs are identified
+as scope limits rather than recreated numerical claims.
+\end{minipage}}
+\end{center}
+
+\begin{abstract}
+We reconstruct the final scientific position of the V3 robust discrete-pricing
+research line. A finite price menu with a portfolio margin requirement reduces
+exactly to a multiple-choice knapsack problem. Under an integer
+cardinality-budget uncertainty set, the coupled robust margin constraint is
+equivalent to a finite union of fixed-threshold MCKPs over the complete set of
+original deviation breakpoints. For every threshold, upper-hull geometry gives
+an exact LP bound and a one-item additive rounding certificate. A globally
+certifying branch-and-bound must preserve original integer options, initialize
+a valid upper-bound record for every threshold, and validate every incumbent
+against the original robust constraint. The V3 implementation further provides
+an exact increasing-threshold sweep that updates transformed coefficients while
+reusing a hull only when its point set is unchanged. This reconstruction states
+the corresponding validity invariants, separates exact procedures from
+diagnostic reductions, and records the limits of the surviving empirical
+evidence. Its purpose is archival continuity between the public March 2026
+paper and the independent V4 group-envelope pivot.
+\end{abstract}
+
+\noindent\textbf{Keywords:} robust optimization; discrete pricing;
+multiple-choice knapsack; exact decomposition; parametric sweep
+
+\section{Research position and provenance}
+
+The V3 line studies a discrete portfolio-pricing model in which one price is
+selected from each product menu. Portfolio revenue is maximized subject to a
+minimum margin ratio and price-admissibility restrictions. The March 2026
+paper established the exact reduction to a multiple-choice knapsack problem
+(MCKP), the fixed-threshold LP geometry, and an additive one-item rounding
+bound. V3 shifted the center of gravity from a fast heuristic narrative to a
+certifying decomposition framework:
+
+\begin{enumerate}
+\item enumerate the complete original deviation-breakpoint set;
+\item construct a valid fixed-threshold LP upper bound at every breakpoint;
+\item maintain globally valid lower and upper bounds under time or node limits;
+\item preserve below-hull integer options in exact search;
+\item update the fixed-threshold data in an exact parametric sweep; and
+\item treat reduced threshold sets and local-budget extensions as separately
+scoped diagnostics unless their own exactness conditions hold.
+\end{enumerate}
+
+This is not a claim that threshold decomposition, MCKP hull geometry, or
+Lagrangian relaxation is new. The contribution of the V3 program is the
+combination of the pricing reduction, explicit robust and rounding
+certificates, and defensible global-gap accounting in a reproducible solver.
+
+\section{Discrete pricing and MCKP reduction}
+
+Let $i\in\{1,\ldots,n\}$ index products and $J_i$ the admissible finite menu of
+product $i$. Option $(i,j)$ has price $p_{ij}>0$, exposure $w_i\ge0$, reference
+price $\bar p_i>0$, and nominal demand $\hat g_{ij}\ge0$. Binary variable
+$x_{ij}$ selects one option:
+\[
+  \sum_{j\in J_i}x_{ij}=1,\qquad x_{ij}\in\{0,1\}.
+\]
+Define nominal revenue and reference-denominator coefficients
+\[
+  v_{ij}:=w_i p_{ij}\hat g_{ij},\qquad
+  q_{ij}:=w_i\bar p_i\hat g_{ij}.
+\]
+For a required margin ratio $\Delta>0$, nominal feasibility is
+\[
+  \sum_{i,j}(v_{ij}-\Delta q_{ij})x_{ij}\ge0.
+\]
+Writing $s_{ij}:=v_{ij}-\Delta q_{ij}$ and
+$s_i^*:=\max_j s_{ij}$ gives nonnegative transformed costs
+$c_{ij}:=s_i^*-s_{ij}$ and capacity $C:=\sum_i s_i^*$. Thus the nominal model
+is exactly
+\begin{align*}
+  \max_x\quad &\sum_{i,j}v_{ij}x_{ij}\\
+  \text{s.t.}\quad &\sum_{i,j}c_{ij}x_{ij}\le C,\\
+  &\sum_jx_{ij}=1\quad(i=1,\ldots,n),\qquad x\in\{0,1\}.
+\end{align*}
+
+\begin{proposition}[Exact nominal reduction]
+The baseline transformation preserves every feasible price selection and its
+objective value. Hence the finite-menu pricing model with a positive
+denominator and a single portfolio ratio floor is an MCKP.
+\end{proposition}
+
+\begin{proof}
+For every exactly-one selection,
+$\sum_{i,j}s_{ij}x_{ij}=\sum_i s_i^*-\sum_{i,j}c_{ij}x_{ij}$.
+The margin residual is nonnegative if and only if the transformed cost is at
+most $C$. The objective and group equations are unchanged.
+\end{proof}
+
+\section{Budgeted uncertainty and full breakpoints}
+
+Let $t_{ij}\in\R$ be the signed option-level margin exposure produced by an
+adverse demand perturbation, and set $d_{ij}:=|t_{ij}|$. Under an integer
+budget $\Gamma\in\{0,\ldots,n\}$, at most $\Gamma$ selected groups receive
+their full adverse deviation. The robust margin residual is
+\[
+  \sum_{i,j}s_{ij}x_{ij}
+  -\max_{\substack{0\le u_i\le1\\\sum_i u_i\le\Gamma}}
+    \sum_i u_i\sum_jd_{ij}x_{ij}.
+\]
+LP duality for the inner budget problem yields
+\[
+ \max_{0\le u\le1,\ \mathbf 1^\top u\le\Gamma}\sum_i d_i u_i
+ =\min_{\theta\ge0}
+   \left\{\Gamma\theta+\sum_i\pos{d_i-\theta}\right\},
+ \qquad d_i:=\sum_jd_{ij}x_{ij}.
+\]
+For fixed $\theta$, define
+\[
+  s_{ij}^{\theta}:=s_{ij}-\pos{d_{ij}-\theta}.
+\]
+The complete original candidate set is
+\[
+  \B:=\{0\}\cup\{d_{ij}:i=1,\ldots,n,\ j\in J_i\}.
+\]
+
+\begin{theorem}[Finite full-breakpoint decomposition]
+A binary selection is robust feasible if and only if there exists
+$\theta\in\B$ such that
+\[
+  \sum_{i,j}s_{ij}^{\theta}x_{ij}-\Gamma\theta\ge0.
+\]
+Consequently, the robust problem is the maximum over a finite family of
+fixed-$\theta$ MCKPs.
+\end{theorem}
+
+\begin{proof}
+For a fixed selection, the protection function
+$h(\theta)=\Gamma\theta+\sum_i\pos{d_i-\theta}$ is convex and piecewise linear.
+Its breakpoints are zero and the selected deviations. A minimizer therefore
+exists at one of those values, all of which belong to the global set $\B$.
+Substitution into the robust residual gives the stated equivalence.
+\end{proof}
+
+The word \emph{original} is essential. Removing an option before constructing
+$\B$ can remove the only threshold supporting an optimal integer selection.
+V3 therefore permits reduced threshold sets only as diagnostics or heuristics,
+not as inputs to a global exactness claim.
+
+\section{Fixed-threshold hull certificate}
+
+For fixed $\theta\in\B$, let
+\[
+  s_i^*(\theta):=\max_j s_{ij}^{\theta},\qquad
+  c_{ij}^{\theta}:=s_i^*(\theta)-s_{ij}^{\theta},\qquad
+  C(\theta):=\sum_i s_i^*(\theta)-\Gamma\theta.
+\]
+If $C(\theta)<0$, the disjunct is infeasible. Otherwise it is the MCKP
+\begin{align*}
+ L(\theta):=\max_x\quad &\sum_{i,j}v_{ij}x_{ij}\\
+ \text{s.t.}\quad &\sum_{i,j}c_{ij}^{\theta}x_{ij}\le C(\theta),\\
+ &\sum_jx_{ij}=1,\qquad x\ge0.
+\end{align*}
+
+Within a group, plot each option as
+$(c_{ij}^{\theta},v_{ij})$. Dominated points do not affect the LP relaxation.
+The upper concave hull supplies marginal value-per-cost segments; sorting all
+segments by decreasing slope gives the exact greedy solution of the LP
+relaxation. At most one group is fractional after merging equal-slope ties in a
+consistent way.
+
+Let $\Delta V_i^{\theta}$ be the largest value increase between consecutive
+vertices of group $i$'s upper hull, and let
+$\Delta V_{\max}^{\theta}:=\max_i\Delta V_i^{\theta}$.
+
+\begin{theorem}[One-item additive certificate]
+For a feasible fixed threshold, let $Z^{\rm IP}(\theta)$ and $L(\theta)$ be the
+integer and LP optima. Then
+\[
+  0\le L(\theta)-Z^{\rm IP}(\theta)
+  \le \Delta V_{\max}^{\theta}.
+\]
+A HullRound solution obtained by rounding the sole fractional group toward
+the lower-cost adjacent hull vertex is feasible and attains value at least
+$L(\theta)-\Delta V_{\max}^{\theta}$.
+\end{theorem}
+
+\begin{proof}
+The greedy LP fills complete hull segments until the residual capacity cuts at
+most one segment. Rounding that segment down cannot increase cost. The value
+loss is no larger than the complete value jump of that segment, which is at
+most $\Delta V_{\max}^{\theta}$. The integer optimum lies between the rounded
+feasible value and the LP upper bound.
+\end{proof}
+
+\begin{corollary}[Asymptotic relative gap]
+If option values and hull jumps are uniformly bounded while the optimal value
+grows linearly in $n$, then the relative fixed-threshold integrality gap is
+$O(1/n)$.
+\end{corollary}
+
+Upper-hull filtering is safe for the LP calculation but not automatically for
+the integer search. A below-hull option can remain part of an optimal integer
+combination because capacities are discrete. V3's exact branch-and-bound keeps
+all original options except those removed by an integer-safe within-group
+dominance rule.
+
+\section{Globally valid exact and anytime search}
+
+For every $\theta\in\B$, denote the fixed-threshold integer optimum by
+$Z^{\rm IP}(\theta)$. The robust optimum is
+\[
+  Z^{\rm robust}=\max_{\theta\in\B}Z^{\rm IP}(\theta).
+\]
+The exact solver maintains a robust-feasible incumbent value
+$Z^{\rm inc}$ and, for each threshold, a valid record $U_{\theta}$ satisfying
+$Z^{\rm IP}(\theta)\le U_{\theta}$. Initially, $U_{\theta}=L(\theta)$ whenever
+the fixed-threshold LP is feasible and $U_{\theta}=-\infty$ otherwise.
+Branch-and-bound may subsequently reduce $U_{\theta}$ or prove the disjunct
+optimal.
+
+\begin{proposition}[Global gap invariant]
+If every original threshold has a valid upper-bound record, then at every
+stage of the search
+\[
+  Z^{\rm inc}\le Z^{\rm robust}\le
+  U^{\rm global}:=\max_{\theta\in\B}U_{\theta}.
+\]
+Thus a time- or node-limited run reports the valid absolute gap
+$U^{\rm global}-Z^{\rm inc}$ and the corresponding scaled relative gap.
+\end{proposition}
+
+\begin{proof}
+The incumbent is accepted only after direct validation under the original
+sorted-$\Gamma$ robust residual, so it is a lower bound. Every robust feasible
+selection belongs to at least one original threshold disjunct. The optimum of
+that disjunct is bounded by its record, hence the maximum record bounds the
+global optimum. Branch-and-bound pruning preserves each record because it
+uses only valid LP bounds or proven infeasibility.
+\end{proof}
+
+A finite limited-run gap is invalid if some threshold has no upper-bound
+record. This accounting rule was a non-negotiable V3 correction: initializing
+only the thresholds reached before a time limit can make an apparently small
+global gap meaningless.
+
+\section{Exact parametric threshold sweep}
+
+Independent recomputation constructs every array from scratch at every
+threshold. V3 also supplies an increasing-$\theta$ sweep. Between consecutive
+global breakpoints, each transformed coefficient
+$s_{ij}^{\theta}=s_{ij}-\pos{d_{ij}-\theta}$ is affine; at a breakpoint, the
+corresponding option changes from the active-deviation expression to its
+nominal margin. The sweep updates these coefficients and then recomputes each
+group baseline, transformed cost array, and capacity exactly.
+
+Hull reuse is deliberately conservative. A cached group hull is reused only
+when the nondominated option set and the complete cost-value point arrays are
+unchanged within the stated tolerance. Otherwise it is rebuilt. Optional
+validation independently reconstructs sampled states and compares transformed
+coefficients, capacities, costs, hulls, and root LP bounds.
+
+\begin{proposition}[Sweep equivalence]
+In exact arithmetic, the increasing-threshold sweep produces the same
+$s_{ij}^{\theta}$, $c_{ij}^{\theta}$, $C(\theta)$, group hulls, and LP upper
+bound as independent fixed-threshold recomputation at every
+$\theta\in\B$.
+\end{proposition}
+
+\begin{proof}
+Each option's update rule is the piecewise-linear identity defining
+$s_{ij}^{\theta}$. Baselines, costs, and capacity are then evaluated from their
+definitions. A reused hull has an unchanged input point set; a changed point
+set is rebuilt. The same deterministic greedy merge therefore receives the
+same hull segments as independent recomputation.
+\end{proof}
+
+This proposition is an exactness statement, not a universal runtime theorem.
+When most group point sets change at most thresholds, hull rebuilding and
+fixed-threshold integer search can dominate the saved coefficient work.
+
+\section{Implementation and preserved evidence}
+
+The complete code state is archived at commit
+\texttt{2e2829e55243b846e5944965a839eb9b28dd5e9c}. The principal preserved
+modules are summarized in \Cref{tab:modules}.
+
+\begin{table}[htbp]
+\centering
+\caption{V3 code modules preserved in the exact archive.}
+\label{tab:modules}
+\small
+\begin{tabular}{p{0.33\textwidth}p{0.58\textwidth}}
+\toprule
+Module & Role \\
+\midrule
+\texttt{certificate.py} & Direct sorted-$\Gamma$ robust-feasibility certificate. \\
+\texttt{hull.py}, \texttt{greedy.py} & Group upper hulls and exact fixed-threshold LP relaxation. \\
+\texttt{rounding.py}, \texttt{solver.py} & HullRound construction and one-item additive certificate diagnostics. \\
+\texttt{exact\_bnb.py} & Fixed-threshold and global full-breakpoint exact branch-and-bound with bound records. \\
+\texttt{parametric\_sweep.py} & Exact increasing-threshold state construction, guarded hull reuse, and validation diagnostics. \\
+\texttt{local\_budget.py} & Separately scoped segment-local budget extension for small threshold products. \\
+\texttt{milp\_baselines.py} & Optional SCIP, HiGHS, Gurobi, and CPLEX baselines with explicit availability reporting. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The V3 revision record states that 82 tests passed on 22 May 2026 and that
+public and blind manuscript builds passed at that time. It also records that
+the complete publication benchmark was not regenerated during the final
+revision. The generated CSVs, figures, and manuscript files lived in ignored
+local directories and did not survive. Accordingly, this reconstruction does
+not repeat unrecoverable V3 runtime tables or claim superiority over mature
+MILP solvers. The exact V2/arXiv numerical record remains preserved separately
+in the legacy archive.
+
+The surviving design establishes a reproducible route to new evidence:
+unit tests exercise certificates and exact-search invariants; smoke drivers
+compare independent and swept states; solver scripts report unavailable
+backends rather than silently dropping them; and every accepted incumbent is
+checked against the original robust constraint.
+
+\section{Scope boundaries and relationship to V4}
+
+V3 is limited to integer $\Gamma$, one global budgeted margin constraint, and
+finite exactly-one menus. Fractional uncertainty budgets require an additional
+fractional protection term. Multiple independent robust constraints create a
+multidimensional threshold product and are not covered by the scalar
+decomposition. The pricing application uses own-price demand and does not
+establish causal or transaction-level demand effects.
+
+V4 is not a revision of this paper. V3 studies fixed-threshold MCKP hull
+geometry, rounding, global enumeration, and exact-search accounting. V4 asks a
+different question: how to evaluate a Lagrangian multiplier simultaneously
+over the complete threshold family using exactly-one group envelopes. The two
+lines share classical robust-MCKP background but have distinct central
+theorems, algorithms, and evidence packages.
+
+\section{Conclusion}
+
+The V3 scientific contribution is best understood as a certifying bridge from
+finite-menu robust pricing to exact full-breakpoint MCKP decomposition. Its
+core guardrails are durable: use every original breakpoint for exactness,
+distinguish LP-safe hull filtering from integer-safe pruning, validate every
+incumbent in the original model, and report a finite global gap only after
+every disjunct has a valid upper-bound record. The parametric sweep preserves
+these invariants while avoiding redundant state construction when group point
+sets remain unchanged.
+
+This reconstructed PDF restores a readable V3 record without pretending to be
+the deleted original. The exact public predecessor, exact V3 code, provenance
+notes, checksums, and this reconstruction together form the maintained legacy
+archive.
+
+\section*{Archived data and code}
+
+The exact code snapshot, predecessor source, this reconstruction source, and
+SHA-256 manifest are stored in the public legacy directory of
+\url{https://github.com/eric939/robust_mckp}. The V3 code is independently
+anchored by branch \texttt{v3} and tag
+\texttt{legacy-v3-code-20260522}.
+
+\begin{thebibliography}{99}
+
+\bibitem[\protect\citeauthoryear{Bertsimas and Sim}{Bertsimas and Sim}{2003}]{BertsimasSim2003}
+Bertsimas, D. and Sim, M. (2003).
+\newblock Robust discrete optimization and network flows.
+\newblock \emph{Mathematical Programming}, 98, 49--71.
+
+\bibitem[\protect\citeauthoryear{Bertsimas and Sim}{Bertsimas and Sim}{2004}]{BertsimasSim2004}
+Bertsimas, D. and Sim, M. (2004).
+\newblock The price of robustness.
+\newblock \emph{Operations Research}, 52, 35--53.
+
+\bibitem[\protect\citeauthoryear{Dyer}{Dyer}{1984}]{Dyer1984}
+Dyer, M. E. (1984).
+\newblock An $O(n)$ algorithm for the multiple-choice knapsack linear program.
+\newblock \emph{Mathematical Programming}, 29, 57--63.
+
+\bibitem[\protect\citeauthoryear{Monaci et al.}{Monaci et al.}{2013}]{Monaci2013}
+Monaci, M., Pferschy, U., and Serafini, P. (2013).
+\newblock Exact solution of the robust knapsack problem.
+\newblock \emph{Computers \& Operations Research}, 40, 2625--2631.
+
+\bibitem[\protect\citeauthoryear{Pisinger}{Pisinger}{1995}]{Pisinger1995}
+Pisinger, D. (1995).
+\newblock A minimal algorithm for the multiple-choice knapsack problem.
+\newblock \emph{European Journal of Operational Research}, 83, 394--410.
+
+\bibitem[\protect\citeauthoryear{Sinha and Zoltners}{Sinha and Zoltners}{1979}]{SinhaZoltners1979}
+Sinha, P. and Zoltners, A. A. (1979).
+\newblock The multiple-choice knapsack problem.
+\newblock \emph{Operations Research}, 27, 503--515.
+
+\end{thebibliography}
+
+\end{document}

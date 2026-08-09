@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import gzip
 import math
+import zipfile
 import numpy as np
 import pytest
 
@@ -14,6 +16,7 @@ from research.structural_feasibility_study import (
 from research.v4_publication_campaign import (
     PROTOCOL,
     _dyadic_intervals,
+    build_external_knapsack_instance,
     geometric_mean,
     summarize_timing_stability,
     stratified_bootstrap_geomean_ci,
@@ -78,9 +81,49 @@ def test_paired_summary_uses_instances_not_timing_repetitions() -> None:
 def test_protocol_fixes_primary_gates_before_execution() -> None:
     gates = PROTOCOL["gates"]
     assert gates["validation_max_absolute_error"] <= 2e-6
+    assert gates["validation_certificate_max_violation"] <= 2e-6
+    assert gates["validation_max_scaled_certificate_gap"] <= 1.1e-8
     assert gates["primary_geomean_speedup"] >= 2.0
     assert gates["primary_bootstrap_ci_lower"] > 1.0
     assert gates["primary_compressed_tolerance_rate"] == 1.0
+    assert PROTOCOL["external_knapsack"]["record_doi"] == "10.5281/zenodo.7419028"
+
+
+def test_external_binary_knapsack_maps_to_two_option_groups(tmp_path) -> None:
+    nominal = """NAME test
+ROWS
+ N OBJ
+ L capConstr
+COLUMNS
+    x0 OBJ -10
+    x0 capConstr 4
+    x1 OBJ -7
+    x1 capConstr 3
+RHS
+    RHS1 capConstr 8
+BOUNDS
+ BV BND1 x0
+ BV BND1 x1
+ENDATA
+"""
+    robustness = "Gamma:1\nx0:2\nx1:1\n"
+    archive_path = tmp_path / "benchmark.zip"
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr(
+            "RobustKnapsack/NominalKnapsacks/knapsack_n=2_seed=9.mps.gz",
+            gzip.compress(nominal.encode("utf-8")),
+        )
+        archive.writestr(
+            "RobustKnapsack/RobustnessComponents/knapsack_n=2_seed=9.txt",
+            robustness,
+        )
+    instance = build_external_knapsack_instance(archive_path, n=2, seed=9)
+    assert instance.gamma == 1
+    assert [len(group) for group in instance.items] == [2, 2]
+    assert instance.items[0][1].value == 10.0
+    assert instance.items[0][1].margin == 0.0
+    assert instance.items[1][1].margin == 1.0
+    assert instance.items[0][1].uncertainty == 2.0
 
 
 def test_common_trace_intervals_are_deterministic_and_nonsingleton() -> None:
@@ -138,6 +181,8 @@ def test_adaptive_certificate_retains_tolerance_pruned_upper_bound(monkeypatch) 
     assert result["lower_bound"] == pytest.approx(100.0)
     assert result["upper_bound"] == pytest.approx(100.05)
     assert result["relative_gap"] == pytest.approx(5e-4)
+    assert result["interval_bound_evaluations"] == 3
+    assert result["all_interval_bounds_certified"] is False
 
 
 def test_adaptive_methods_find_feasible_anchor_beyond_root_candidates() -> None:
@@ -183,6 +228,8 @@ def test_adaptive_methods_find_feasible_anchor_beyond_root_candidates() -> None:
     assert compressed["lower_bound"] == pytest.approx(clique["lower_bound"])
     assert compressed["relative_gap"] <= 1e-8
     assert clique["relative_gap"] <= 1e-8
+    assert compressed["all_interval_bounds_certified"] is True
+    assert compressed["maximum_scaled_oracle_optimality_gap"] <= 1.1e-8
 
 
 def test_adaptive_methods_report_globally_infeasible_family() -> None:

@@ -51,7 +51,7 @@ from robust_mckp.exact_bnb import (  # noqa: E402
     solve_global_theta_bnb,
 )
 from scripts.benchmark_solvers import solve_full_robust_highs, solve_full_robust_scip  # noqa: E402
-from scripts.run_v3_experiments import build_hard_instance  # noqa: E402
+from research.benchmark_instances import build_benchmark_instance  # noqa: E402
 
 
 TOL = 1e-8
@@ -71,6 +71,11 @@ class IntervalBound:
     lambda_value: float
     evaluations: int
     runtime_seconds: float
+    # Populated by certifying minimax oracles. Defaults preserve the original
+    # four-field research interface for legacy comparators and test doubles.
+    lower_bound: float = float("-inf")
+    optimality_gap: float = float("inf")
+    certified: bool = False
 
 
 def _write_csv(path: Path, rows: Sequence[dict]) -> None:
@@ -825,7 +830,7 @@ def run_interval_study(
     singleton_validation_errors: list[float] = []
     for family, n, seed in itertools.product(families, sizes, seeds):
         gamma = _gamma_for(n, "sqrt")
-        instance = build_hard_instance(family, n, 6, gamma, seed)
+        instance = build_benchmark_instance(family, n, 6, gamma, seed)
         oracle_start = time.perf_counter()
         oracle = ThetaIntervalOracle(instance)
         root = oracle.bound(0, len(oracle.thetas) - 1)
@@ -985,7 +990,7 @@ def run_cut_study(
     rows: list[dict] = []
     for family, n, seed in itertools.product(families, sizes, seeds):
         gamma = _gamma_for(n, "sqrt")
-        instance = build_hard_instance(family, n, 6, gamma, seed)
+        instance = build_benchmark_instance(family, n, 6, gamma, seed)
         direction = np.array(
             [option.value for group in instance.items for option in group], dtype=float
         )

@@ -22,6 +22,7 @@ import json
 import math
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import time
@@ -61,11 +62,15 @@ from research.novelty_go_no_go import (  # noqa: E402
     minimal_group_conflicts,
     shrink_group_conflict,
 )
-from scripts.run_v3_experiments import build_hard_instance  # noqa: E402
+from research.benchmark_instances import build_benchmark_instance  # noqa: E402
 
 
 TOL = 1e-8
-CDDEXEC = Path("/opt/homebrew/bin/cddexec_gmp")
+CDDEXEC = Path(
+    os.environ.get("CDDEXEC")
+    or shutil.which("cddexec_gmp")
+    or "/opt/homebrew/bin/cddexec_gmp"
+)
 
 
 class FixedThetaLPOracle:
@@ -598,7 +603,7 @@ def run_exact_cut_benchmark(
 ) -> dict:
     rows: list[dict] = []
     for family, n, seed in itertools.product(families, sizes, seeds):
-        instance = build_hard_instance(family, n, 6, _gamma_for(n, "sqrt"), seed)
+        instance = build_benchmark_instance(family, n, 6, _gamma_for(n, "sqrt"), seed)
         direction = np.array(
             [option.value for group in instance.items for option in group], dtype=float
         )
@@ -687,6 +692,11 @@ def adaptive_interval_bound(
     start = time.perf_counter()
     lp_cache: dict[int, float] = {}
     fixed_theta_oracle = FixedThetaLPOracle(instance)
+    interval_bound_evaluations = 0
+    multiplier_evaluations = 0
+    certified_bound_evaluations = 0
+    maximum_oracle_gap = 0.0
+    maximum_scaled_oracle_gap = 0.0
 
     def fixed_lp(index: int) -> float:
         if index not in lp_cache:
@@ -694,7 +704,20 @@ def adaptive_interval_bound(
         return lp_cache[index]
 
     def interval_record(lo: int, hi: int) -> tuple[float, int, int]:
+        nonlocal interval_bound_evaluations, multiplier_evaluations
+        nonlocal certified_bound_evaluations, maximum_oracle_gap
+        nonlocal maximum_scaled_oracle_gap
         bound = oracle.bound(lo, hi)
+        interval_bound_evaluations += 1
+        multiplier_evaluations += int(bound.evaluations)
+        if bound.certified:
+            certified_bound_evaluations += 1
+            maximum_oracle_gap = max(maximum_oracle_gap, float(bound.optimality_gap))
+            maximum_scaled_oracle_gap = max(
+                maximum_scaled_oracle_gap,
+                float(bound.optimality_gap)
+                / max(1.0, abs(float(bound.upper_bound))),
+            )
         # Candidate selection is deliberately oracle-independent so that the
         # end-to-end comparator differs only in its interval upper bound.
         for index in sorted({lo, hi, (lo + hi) // 2}):
@@ -722,6 +745,14 @@ def adaptive_interval_bound(
                 "upper_bound": float("-inf"),
                 "relative_gap": 0.0,
                 "theta_lp_evaluations": len(lp_cache),
+                "interval_bound_evaluations": interval_bound_evaluations,
+                "multiplier_evaluations": multiplier_evaluations,
+                "certified_bound_evaluations": certified_bound_evaluations,
+                "all_interval_bounds_certified": (
+                    certified_bound_evaluations == interval_bound_evaluations
+                ),
+                "maximum_oracle_optimality_gap": maximum_oracle_gap,
+                "maximum_scaled_oracle_optimality_gap": maximum_scaled_oracle_gap,
                 "interval_splits": 0,
                 "runtime_seconds": time.perf_counter() - start,
             }
@@ -745,11 +776,11 @@ def adaptive_interval_bound(
                 lower = max(lower, lp_cache[child_lo])
                 continue
             child = interval_record(child_lo, child_hi)
+            lower = max(lower, max(lp_cache.values(), default=lower))
             if child[0] > lower + relative_tolerance * max(1.0, abs(lower)):
                 heapq.heappush(queue, (-child[0], child_lo, child_hi))
             else:
                 discarded_upper = max(discarded_upper, child[0])
-        lower = max(lower, max(lp_cache.values(), default=lower))
         splits += 1
     upper = max(lower, discarded_upper, -queue[0][0] if queue else float("-inf"))
     if not queue:
@@ -761,6 +792,14 @@ def adaptive_interval_bound(
         "upper_bound": upper,
         "relative_gap": (upper - lower) / max(1.0, abs(lower)),
         "theta_lp_evaluations": len(lp_cache),
+        "interval_bound_evaluations": interval_bound_evaluations,
+        "multiplier_evaluations": multiplier_evaluations,
+        "certified_bound_evaluations": certified_bound_evaluations,
+        "all_interval_bounds_certified": (
+            certified_bound_evaluations == interval_bound_evaluations
+        ),
+        "maximum_oracle_optimality_gap": maximum_oracle_gap,
+        "maximum_scaled_oracle_optimality_gap": maximum_scaled_oracle_gap,
         "interval_splits": splits,
         "runtime_seconds": time.perf_counter() - start,
     }
@@ -775,7 +814,7 @@ def run_scaling_study(
 ) -> dict:
     rows: list[dict] = []
     for family, n, seed in itertools.product(families, sizes, seeds):
-        instance = build_hard_instance(family, n, 6, _gamma_for(n, "sqrt"), seed)
+        instance = build_benchmark_instance(family, n, 6, _gamma_for(n, "sqrt"), seed)
         oracle_start = time.perf_counter()
         oracle = ThetaIntervalOracle(instance)
         root = oracle.bound(0, len(oracle.thetas) - 1)
@@ -1144,7 +1183,7 @@ def run_strong_bound_comparison(
 ) -> dict:
     rows: list[dict] = []
     for family, n, seed in itertools.product(families, sizes, seeds):
-        instance = build_hard_instance(family, n, 6, _gamma_for(n, "sqrt"), seed)
+        instance = build_benchmark_instance(family, n, 6, _gamma_for(n, "sqrt"), seed)
         thetas = build_full_theta_candidates(instance)
         generic_bound, generic_seconds = bounded_theta_strong_lp(
             instance, min(thetas), max(thetas)
@@ -1214,7 +1253,7 @@ def run_clique_interval_comparison(
 
     rows: list[dict] = []
     for family, n, seed in itertools.product(families, sizes, seeds):
-        instance = build_hard_instance(family, n, 6, _gamma_for(n, "sqrt"), seed)
+        instance = build_benchmark_instance(family, n, 6, _gamma_for(n, "sqrt"), seed)
         scan_value, scan_seconds, _ = full_theta_lp_scan(instance)
 
         oracle = ThetaIntervalOracle(instance)

@@ -1,8 +1,10 @@
 # V4 literature and novelty audit
 
-Audit date: 19 July 2026. Scope: exact and relaxation algorithms for globally budgeted robust binary optimization, robust knapsack/MCKP, fixed-threshold MCKP LP algorithms, and adjacent robust-MCKP models. Searches used title/abstract/full-text queries for combinations of *robust*, *multiple-choice knapsack*, *budgeted uncertainty*, *threshold*, *Lagrangian*, *parametric*, *envelope*, and *simultaneous*. The conclusion below is necessarily a documented “to the best of our knowledge” assessment, not proof that no unpublished or unindexed result exists.
+Audit date: 21 July 2026; final date-sensitive and source-locator recheck: 1 August 2026. Scope: exact and relaxation algorithms for globally budgeted robust binary optimization, robust knapsack/MCKP, fixed-threshold MCKP LP algorithms, and adjacent robust-MCKP models. Searches used title/abstract/full-text queries for combinations of *robust*, *multiple-choice knapsack*, *budgeted uncertainty*, *threshold*, *Lagrangian*, *parametric*, *envelope*, and *simultaneous* across INFORMS, Springer, Optimization Online, arXiv, and reference chains. The conclusion below is necessarily a documented “to the best of our knowledge” assessment, not proof that no unpublished or unindexed result exists. Claim-level primary-source locators and verification status are recorded in `research/EVIDENCE_LEDGER_V4.csv`.
 
-A final date-sensitive sweep for 2025--2026 work found the author's March 2026 v3 preprint, *Robust Discrete Pricing Optimization via Multiple-Choice Knapsack Reductions*, but no external paper deriving the v4 all-threshold group-envelope oracle.  That preprint is the public predecessor of this revision, not independent prior art; the submission should update or supersede it rather than present v4 as an unrelated paper.  The sweep also found recent work on locally budgeted uncertainty, robust selection with information discovery, and two-stage robust optimization.  Those papers use different uncertainty structures or decision models and do not address the precise simultaneous-evaluation task audited here.
+A final date-sensitive sweep for 2025--2026 work also returned the author's companion Paper A, now frozen as *A Certifying MCKP Framework for Gamma-Robust Discrete Pricing* (arXiv:2603.18653v2). Paper A is the predecessor for the pricing model, exact full-breakpoint MCKP decomposition, fixed-threshold hull/rounding certificates, and exact full-family search. It does not contain or anticipate the v4 all-threshold group-envelope oracle, minimax-dominance theorem, or certified multiplier algorithm and therefore is not a source of the v4 novelty claim. The sweep also found a March 2026 chance-constrained multiobjective MCKP paper; its implicit-distribution, Monte Carlo, and evolutionary setting is not a collision. Recent decision-dependent, recoverable, locally budgeted, and two-stage robust work likewise uses different uncertainty structures or decision models. No located source derives the precise simultaneous-evaluation task audited here.
+
+The 1 August recheck additionally screened 2025--2026 work on parametrized robust scheduling, two-stage robust selection, robust selection with information discovery, and robust extensible bin packing. Those papers study scheduling or multistage selection complexity, information acquisition, or convex-knapsack separation under different decision and uncertainty structures. None addresses simultaneous Lagrangian evaluation of the complete exactly-one robust-MCKP threshold family.
 
 ## Verdict
 
@@ -10,7 +12,7 @@ The broad problem is not novel. The defensible contribution is narrow and algori
 
 > For an exactly-one, single-constraint MCKP under one global Bertsimas–Sim budget, cancellation of the fixed-threshold baseline converts the Lagrangian dual at a fixed multiplier into per-group maxima of one constant and one common-slope line on each local deviation interval. Prefix/suffix maxima and range accumulation then evaluate that multiplier simultaneously at all global thresholds in `O(B + K log(B+1))` time and `O(B + K)` working storage, where `K` is the option count and `B` the number of distinct thresholds.
 
-The resulting interval bound is valid by weak duality and exact on singleton intervals after multiplier minimization. I found no prior source deriving this cancellation, the two-envelope representation, or the simultaneous all-threshold evaluation algorithm. The claim should therefore be phrased as “to our knowledge” and tied to the precise model and task above.
+The resulting interval bound is valid by weak duality and exact on singleton intervals after multiplier minimization. The deployed algorithm now brackets the minimizer of the finite convex piecewise-linear envelope and contracts the bracket until an explicit Lipschitz certificate bounds its optimization error. Thus the implementation returns a valid evaluated bound and a computable additive gap; it inherits exact-minimax dominance up to that gap. I found no prior source deriving this cancellation, the two-envelope representation, the simultaneous all-threshold evaluation algorithm, or this specialized certified minimization scheme. The claim should therefore be phrased as “to our knowledge” and tied to the precise model and task above.
 
 The final revision adds a formal comparison with the closest bounded-threshold
 group-clique relaxation. The epigraph dual of the exact minimax envelope bound
@@ -32,6 +34,13 @@ introduces a stronger robust formulation.
 | Zemel (1980); Dyer (1984); Sinha & Zoltners (1979); modern MCKP survey (Szkaliczki, 2025) | Fast, including linear-time, algorithms for one fixed MCKP LP; Lagrangian and hull/greedy structure are classical. | V4 does not claim a faster solver for one MCKP LP. It amortizes one multiplier evaluation across a complete robust-threshold family. |
 | Monaci, Pferschy & Serafini (2013) | Exact methods and approximation results for the standard robust knapsack problem. | No exactly-one group structure and no simultaneous MCKP threshold envelope. |
 | Caserta & Voß (2019) | Robust multiple-choice multidimensional knapsack under ellipsoidal/covariance uncertainty, with conic/linear reformulations and a matheuristic. | Different uncertainty set, multiple-resource geometry, and computational target. |
+| Li et al. (2026) | Chance-constrained, multiobjective MCKP under an implicit probability distribution, with adaptive Monte Carlo and evolutionary search. | Stochastic/chance feasibility, two objectives, and sampling-based evaluation; no global budgeted-uncertainty threshold family or simultaneous deterministic LP bound. |
+
+## External-evidence audit
+
+The closest public robust-binary implementation located is the Büsing--Gersing--Koster code and instance archive. Its model places budgeted uncertainty in the objective and its implementation requires Java and commercial Gurobi, whereas v4 studies uncertainty in one resource constraint and compares LP-family certificates. A direct solver-to-solver replication would therefore change both the model and computational target.
+
+The released external panel instead uses nine published coefficient sets from the companion archive and documents an exact two-option encoding of binary selection. Published nominal weights, profits, capacities, and deviation magnitudes are preserved; the deviation magnitudes are transparently transferred from the source objective to v4's uncertain resource. This panel is evidence against generator-specific timing artifacts, not evidence that v4 reproduces or outperforms the source paper's complete branch-and-bound algorithm. The archive DOI, license, file digest, instance paths, and transformation are recorded in the released summary.
 
 ## Claims that v4 must not make
 
@@ -58,15 +67,11 @@ introduces a stronger robust formulation.
 12. Caserta, M. & Voß, S. (2019), “The Robust Multiple-Choice Multidimensional Knapsack Problem,” *Omega* 86, 16–27. DOI: 10.1016/j.omega.2018.06.014.
 13. Joung, S. & Park, K. (2021), “Robust Mixed 0–1 Programming and Submodularity,” *INFORMS Journal on Optimization* 3, 183–199. DOI: 10.1287/ijoo.2019.0042.
 14. Joung, S., Oh, S. & Lee, K. (2023), “Comparative Analysis of Linear Programming Relaxations for the Robust Knapsack Problem,” *Annals of Operations Research* 323, 65–78. DOI: 10.1007/s10479-022-05161-w.
+15. Sinha, P. & Zoltners, A. A. (1979), “The Multiple-Choice Knapsack Problem,” *Operations Research* 27, 503–515. DOI: 10.1287/opre.27.3.503.
+16. Li, X., Liu, S., Chen, W., Ong, Y.-S. & Tang, K. (2026), “Multi-Objective Evolutionary Optimization of Chance-Constrained Multiple-Choice Knapsack Problems with Implicit Probability Distributions.” arXiv:2603.08209.
+17. Gersing, T., Büsing, C. & Koster, A. M. C. A. (2022), *Data for A Branch and Bound Algorithm for Robust Binary Optimization with Budget Uncertainty*. Zenodo. DOI: 10.5281/zenodo.7419028.
+18. Büsing, C., Gersing, T. & Koster, A. M. C. A. (2022), *Source code for A Branch and Bound Algorithm for Robust Binary Optimization with Budget Uncertainty*. Zenodo. DOI: 10.5281/zenodo.7463371.
 
 ## Publication recommendation
 
-Proceed with the focused oracle paper rather than the broader v3
-pricing/rounding manuscript. The revision now proves the cancellation,
-complexity, and exact-minimax dominance results; compares against the sparsely
-assembled bounded-threshold group-clique formulation; and distinguishes the
-protocol-fixed confirmatory evidence from the post-confirmatory UCI-calibrated
-and exact-integration panels. A top general OR journal remains a stretch
-because the separate exact audit does not show universal integer-solver
-improvement. A top specialized optimization or computational-optimization
-journal is the strongest fit.
+Proceed with v4 as an independent focused algorithm-and-certificate paper. The manuscript proves the cancellation, complexity, exact-minimax dominance, and deployed minimization-error certificate; compares against the sparsely assembled bounded-threshold group-clique formulation; and adds a published-coefficient stress panel without overstating it as source-model replication. The angle is substantially more rigorous than an empirical oracle-speed paper. A top general OR journal remains ambitious because the separate exact audit deliberately does not show universal integer-solver improvement and the application evidence is semi-synthetic. A top specialized optimization or computational-optimization journal remains the highest-confidence fit; a general top OR submission is defensible as a focused technical paper if the editor values the reusable parametric-oracle technique and unusually auditable evidence package.

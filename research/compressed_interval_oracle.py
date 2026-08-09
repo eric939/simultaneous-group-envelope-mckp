@@ -14,6 +14,13 @@ options have the same slope ``lambda`` and all saturated options are constant.
 The group envelope is therefore the maximum of one line and one constant.  We
 accumulate those pieces with range differences, avoiding the dense
 ``groups x thresholds x options`` tensor used by the original research oracle.
+
+The production ``bound`` method also certifies multiplier minimization.  The
+interval objective is convex and piecewise linear in ``lambda``.  Geometric
+bracketing followed by deterministic golden-section contraction locates a
+minimizer interval, and an explicit Lipschitz constant turns its width into an
+objective-gap certificate.  The reported upper bound remains an explicitly
+evaluated Lagrangian value.
 """
 from __future__ import annotations
 
@@ -23,8 +30,6 @@ from dataclasses import dataclass
 from typing import Sequence
 
 import numpy as np
-import scipy.optimize as opt
-
 from robust_mckp import PricingInstance
 from robust_mckp.exact_bnb import build_full_theta_candidates
 from research.novelty_go_no_go import IntervalBound
@@ -150,6 +155,24 @@ class CompressedThetaIntervalOracle:
         self._cacheable_lambdas = {float(value) for value in self.multiplier_grid}
         self._fixed_value_cache: dict[float, np.ndarray] = {}
 
+        # For every threshold, r_ij(theta) lies between margin-deviation and
+        # margin. Thus each threshold Lagrangian function, and their pointwise
+        # maximum, has a finite explicit Lipschitz constant in lambda.
+        self._group_slope_bounds = np.asarray(
+            [
+                float(
+                    np.max(
+                        np.maximum(
+                            np.abs(margins),
+                            np.abs(margins - deviations),
+                        )
+                    )
+                )
+                for margins, deviations in zip(self.margins, self.deviations)
+            ],
+            dtype=float,
+        )
+
         zero_values = [np.zeros_like(values) for values in self.values]
         self.capacities = self._envelope_values(1.0, zero_values)
         self.preprocessing_seconds = time.perf_counter() - start
@@ -254,7 +277,77 @@ class CompressedThetaIntervalOracle:
         result[self.capacities[lo : hi + 1] < -TOL] = -np.inf
         return result
 
-    def bound(self, lo: int, hi: int, local_search: bool = True) -> IntervalBound:
+    def _interval_lipschitz(self, lo: int, hi: int) -> float:
+        """Return a valid Lipschitz constant for the minimax objective."""
+
+        maximum_theta = float(np.max(np.abs(self.thetas[lo : hi + 1])))
+        return float(
+            np.sum(self._group_slope_bounds)
+            + abs(float(self.instance.gamma)) * maximum_theta
+        )
+
+    def _grid_bound(self, lo: int, hi: int) -> IntervalBound:
+        """Legacy fixed-grid bound retained solely for kernel ablations."""
+
+        start = time.perf_counter()
+        evaluations = [
+            (
+                float(lambda_value),
+                float(
+                    np.max(
+                        self.values_at_lambda(float(lambda_value), lo, hi)
+                    )
+                ),
+            )
+            for lambda_value in self.multiplier_grid
+        ]
+        finite = [(lam, value) for lam, value in evaluations if math.isfinite(value)]
+        if not finite:
+            return IntervalBound(
+                float("-inf"),
+                0.0,
+                len(evaluations),
+                time.perf_counter() - start,
+                lower_bound=float("-inf"),
+                optimality_gap=0.0,
+                certified=True,
+            )
+        best_lambda, best_value = min(finite, key=lambda pair: pair[1])
+        return IntervalBound(
+            float(np.nextafter(best_value, math.inf)),
+            float(best_lambda),
+            len(evaluations),
+            time.perf_counter() - start,
+        )
+
+    def bound(
+        self,
+        lo: int,
+        hi: int,
+        local_search: bool = True,
+        *,
+        relative_tolerance: float = 1e-8,
+        absolute_tolerance: float = 1e-9,
+        max_evaluations: int = 256,
+    ) -> IntervalBound:
+        """Return a valid and tolerance-certified minimax interval bound.
+
+        The default method returns an explicitly evaluated Lagrangian upper
+        bound together with a lower certificate. In real arithmetic its gap is
+        at most ``absolute_tolerance + relative_tolerance * max(1, |UB|)``.
+        ``local_search=False`` selects the historical fixed-grid ablation,
+        which remains a valid upper bound but has no minimization certificate.
+        """
+
+        if lo < 0 or hi >= len(self.thetas) or lo > hi:
+            raise ValueError("invalid threshold interval")
+        if relative_tolerance < 0.0 or absolute_tolerance < 0.0:
+            raise ValueError("oracle tolerances must be nonnegative")
+        if max_evaluations < 8:
+            raise ValueError("max_evaluations must be at least eight")
+        if not local_search:
+            return self._grid_bound(lo, hi)
+
         start = time.perf_counter()
         evaluations: list[tuple[float, float]] = []
 
@@ -264,35 +357,122 @@ class CompressedThetaIntervalOracle:
             evaluations.append((lam, value))
             return value
 
-        grid = self.multiplier_grid
-        grid_values = np.asarray([evaluate(lam) for lam in grid], dtype=float)
-        best_index = int(np.argmin(grid_values))
-        if local_search and 0 < best_index < len(grid) - 1:
-            result = opt.minimize_scalar(
-                evaluate,
-                bounds=(float(grid[best_index - 1]), float(grid[best_index + 1])),
-                method="bounded",
-                options={"xatol": 1e-9, "maxiter": 80},
-            )
-            if math.isfinite(float(result.x)):
-                evaluate(float(result.x))
-        finite = [(lam, value) for lam, value in evaluations if math.isfinite(value)]
-        if not finite:
+        feasible = self.capacities[lo : hi + 1] >= -TOL
+        if not bool(np.any(feasible)):
             return IntervalBound(
-                float("-inf"), 0.0, len(evaluations), time.perf_counter() - start
+                float("-inf"),
+                0.0,
+                0,
+                time.perf_counter() - start,
+                lower_bound=float("-inf"),
+                optimality_gap=0.0,
+                certified=True,
             )
-        best_lambda, best_value = min(finite, key=lambda pair: pair[1])
-        # The mathematical oracle is exact in real arithmetic.  In binary64,
-        # move the evaluated value one representable number upward so that the
-        # returned value does not lose the upper-bound direction merely when
-        # it is stored.  The paper separately states the solver feasibility
-        # tolerance; this is not presented as a proof of interval arithmetic.
-        padded = np.nextafter(best_value, math.inf)
+
+        # Convex bracketing. If f(b) >= f(a) for 0 <= a < b, convexity
+        # implies that some global minimizer lies in [0,b]. Feasibility of a
+        # fixed-threshold LP gives a nonnegative asymptotic slope, so geometric
+        # expansion reaches such a pair after finitely many breakpoints.
+        zero_value = evaluate(0.0)
+        previous_value = zero_value
+        upper_lambda = max(float(self.lambda_scale), 1e-12)
+        upper_value = evaluate(upper_lambda)
+        while upper_value < previous_value and len(evaluations) < max_evaluations - 4:
+            previous_value = upper_value
+            upper_lambda *= 2.0
+            if not math.isfinite(upper_lambda):
+                raise RuntimeError("failed to bracket minimax multiplier")
+            upper_value = evaluate(upper_lambda)
+        if upper_value < previous_value:
+            raise RuntimeError(
+                "minimax bracketing exhausted max_evaluations before certification"
+            )
+
+        lower_lambda = 0.0
+        lipschitz = self._interval_lipschitz(lo, hi)
+        if lipschitz == 0.0:
+            best_lambda, best_value = min(evaluations, key=lambda pair: pair[1])
+            padded = float(np.nextafter(best_value, math.inf))
+            lower = float(np.nextafter(best_value, -math.inf))
+            return IntervalBound(
+                padded,
+                float(best_lambda),
+                len(evaluations),
+                time.perf_counter() - start,
+                lower_bound=lower,
+                optimality_gap=float(padded - lower),
+                certified=True,
+            )
+
+        # Golden-section contraction preserves at least one minimizer in the
+        # closed bracket. The stopping rule certifies objective error, unlike a
+        # generic scalar optimizer's step-size termination test.
+        inverse_phi = (math.sqrt(5.0) - 1.0) / 2.0
+        left_point = upper_lambda - inverse_phi * (upper_lambda - lower_lambda)
+        right_point = lower_lambda + inverse_phi * (upper_lambda - lower_lambda)
+        left_value = evaluate(left_point)
+        right_value = evaluate(right_point)
+        while len(evaluations) < max_evaluations:
+            finite = [pair for pair in evaluations if math.isfinite(pair[1])]
+            _best_lambda, best_value = min(finite, key=lambda pair: pair[1])
+            target_gap = absolute_tolerance + relative_tolerance * max(
+                1.0, abs(best_value)
+            )
+            certified_gap = lipschitz * (upper_lambda - lower_lambda)
+            if certified_gap <= target_gap:
+                break
+            if left_value <= right_value:
+                upper_lambda = right_point
+                right_point = left_point
+                right_value = left_value
+                left_point = upper_lambda - inverse_phi * (
+                    upper_lambda - lower_lambda
+                )
+                if left_point <= lower_lambda or left_point >= upper_lambda:
+                    break
+                left_value = evaluate(left_point)
+            else:
+                lower_lambda = left_point
+                left_point = right_point
+                left_value = right_value
+                right_point = lower_lambda + inverse_phi * (
+                    upper_lambda - lower_lambda
+                )
+                if right_point <= lower_lambda or right_point >= upper_lambda:
+                    break
+                right_value = evaluate(right_point)
+
+        finite = [pair for pair in evaluations if math.isfinite(pair[1])]
+        in_bracket = [
+            pair
+            for pair in finite
+            if lower_lambda <= pair[0] <= upper_lambda
+        ]
+        best_lambda, best_value = min(in_bracket, key=lambda pair: pair[1])
+        certified_gap = lipschitz * (upper_lambda - lower_lambda)
+        target_gap = absolute_tolerance + relative_tolerance * max(
+            1.0, abs(best_value)
+        )
+        if certified_gap > target_gap:
+            raise RuntimeError(
+                "minimax contraction exhausted max_evaluations before certification: "
+                f"gap={certified_gap:.6g}, target={target_gap:.6g}"
+            )
+
+        # In binary64, move the evaluated value one representable number upward
+        # and the real-arithmetic lower certificate one number downward so
+        # storage alone cannot reverse either enclosure direction.
+        # This is a solver-tolerance certificate, not interval arithmetic.
+        padded = float(np.nextafter(best_value, math.inf))
+        lower = float(np.nextafter(best_value - certified_gap, -math.inf))
         return IntervalBound(
-            float(padded),
+            padded,
             float(best_lambda),
             len(evaluations),
             time.perf_counter() - start,
+            lower_bound=lower,
+            optimality_gap=float(padded - lower),
+            certified=True,
         )
 
 

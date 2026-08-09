@@ -1,18 +1,33 @@
 # V4 experiment audit log
 
-Date: 20 July 2026. The final evidence directory is `results/v4_publication_20260720_final`.
+Initial audit: 21 July 2026; final rerun audit: 1 August 2026. The canonical evidence directory is
+`results/release`.
 
-## Protocol-fixed design
+## Certified final design
 
-Before the final confirmatory phases, `v4_publication_campaign.py protocol` wrote the complete design and gates to `protocol.json`. Its SHA-256 digest is `20fd417c6765573b98c88b648abb8af74775e5d0f7d0796aa8a0097853f211ce`. Instance families, sizes, seeds, repetitions, timing order, single-thread rule, tolerance, statistical unit, family--size-cell bootstrap, and go/no-go thresholds were not changed during the final run.
+`v4_publication_campaign.py` serializes the complete design and gates to
+`protocol.json` before each phase. Its SHA-256 digest is
+`6db8550e9e9bb47f352bac93423d82067ed09e6ba6cbe4608a7544c2e3a7d261`.
+Instance families, sizes, seeds, repetitions, timing order, single-thread rule,
+tolerance, statistical unit, family--size-cell bootstrap, external archive
+digest, and go/no-go thresholds were unchanged during the final run. This is a
+reproducible fixed engineering design, not an external preregistration.
 
-An earlier sparse-comparator run is preserved in `results/v4_publication_20260720`. It produced 60/60 timing wins and a 95% CI above one but failed the predeclared 2x geometric-mean gate (1.79x observed). Profiling then identified redundant reconstruction in the shared fixed-threshold LP routine and repeated evaluation of the compressed oracle's fixed multiplier grid. Those algorithm-preserving inefficiencies were removed, new parity tests were added, and a new protocol was serialized before the complete final rerun. The failed run is not used in manuscript tables.
+An earlier sparse-comparator run produced 60/60 timing wins and a 95% CI above
+one but failed the predeclared 2x geometric-mean gate (1.79x observed).
+Profiling then identified redundant reconstruction in the shared
+fixed-threshold LP routine and repeated evaluation of the compressed oracle's
+fixed multiplier grid. Those algorithm-preserving inefficiencies were removed,
+new parity tests were added, and a new protocol was serialized before the
+complete final rerun. The failed run is documented here but its scratch output
+is intentionally omitted from the clean release and is not used in manuscript
+tables.
 
-## Tests before final runs
+## Tests before the certified run
 
 - Exact trace identity against the dense oracle.
 - Direct-formula identity for the cancellation equation.
-- Equality of compressed and dense interval optimization.
+- Certified enclosure of exact epigraph-LP interval minimax values.
 - Validity against complete fixed-threshold LP scans.
 - Singleton equality with the fixed-threshold LP.
 - Deterministic instance-stratified bootstrap and instance-level aggregation.
@@ -23,7 +38,8 @@ An earlier sparse-comparator run is preserved in `results/v4_publication_2026072
 - Exact endpoint handling for repeated and near-repeated deviations.
 - Separation of zero from arbitrarily small positive multipliers.
 - Equality of the reusable direct-hull fixed-MCKP LP routine with the independent reference solver.
-- Reuse of fixed multiplier traces across adaptive child intervals.
+- Certified multiplier counts and maximum scaled gap propagation through the
+  adaptive tree.
 - Deterministic family--size-cell bootstrap and repeat-block timing diagnostics.
 
 ## Corrections found during the audit
@@ -34,6 +50,19 @@ An earlier sparse-comparator run is preserved in `results/v4_publication_2026072
 4. **Dense comparator assembly.** The clique comparator used dense matrices despite a sparse formulation. Both equality and inequality matrices now use CSR storage; all headline experiments were rerun. The earlier dense-baseline speedups are superseded.
 5. **Search-policy mismatch.** The wrappers used oracle-specific fourth candidates. Both now evaluate the same endpoints and midpoint, leaving the interval bound as the sole method difference.
 6. **Inference and repeat selection.** Bootstrap resampling now preserves every family--size cell. The representative numerical result is paired with the median runtime after all repeated bounds and statuses pass consistency checks. Raw outputs include bounds, work counts, execution order, sparse nonzeros, and CSR bytes.
-7. **Fixed-LP overhead and trace reuse.** Both methods now share a direct group-hull fixed-MCKP LP routine validated against the independent reference at every threshold in 40 held-out instances. The compressed oracle caches its constant-size multiplier grid across child intervals, preserving `O(B+K)` storage.
+7. **Fixed-LP overhead.** Both methods now share a direct group-hull fixed-MCKP LP routine validated against the independent reference at every threshold in 40 held-out instances.
+8. **Multiplier theorem--implementation gap.** The production oracle no longer relies on a fixed grid plus heuristic scalar refinement. Convex geometric bracketing, golden-section contraction, and an explicit Lipschitz constant return an evaluated valid upper bound and a certified lower enclosure. Directed binary64 rounding is outward on both endpoints, and the reported gap includes both rounding steps.
+9. **Publication-line separation.** The benchmark seed namespace is `v4|family|n|m|Gamma|seed`; no v3 implementation token remains in the v4 generator or evidence. The cover letter identifies the independent v3 preprint and states the exact non-overlap.
+10. **External coefficient provenance.** Nine cases from the CC BY 4.0 Gersing--Büsing--Koster archive are parsed only after verifying SHA-256 `8571b3e545607415a38a39dc506b21bd891b6a22ce252e42a1622a5a5f451818`. The transfer of source objective deviations to v4 resource deviations is disclosed as an out-of-generator coefficient test, not source-model replication.
+11. **Exact threshold preservation.** Independent adversarial review found that tolerance-clustering distinct deviations could remove the only feasible breakpoint. The exact builder now preserves every binary64-distinct deviation plus zero, and a 100-group counterexample is a regression for both interval-search variants.
+12. **Recorded thread control.** The July protocol stated one thread while its environment variables were unset. The August runner sets and records `OMP_NUM_THREADS`, `MKL_NUM_THREADS`, `OPENBLAS_NUM_THREADS`, `VECLIB_MAXIMUM_THREADS`, and `NUMEXPR_NUM_THREADS` to one; the verifier rejects missing controls.
+13. **Complete application protocol.** The UCI application design is now part of the serialized protocol rather than a separate constant outside it.
+14. **Comparator-policy alignment.** The compressed and clique adaptive routines now refresh the common fixed-threshold lower bound at the same child-processing point before pruning.
 
-No gate, seed, family, instance size, timing rule, or unsuccessful instance was changed or excluded during the final protocol-fixed run. Only that complete run feeds the confirmatory manuscript artifacts. A separate nine-instance UCI-calibrated panel was added afterward and is labeled post-confirmatory. The generated evidence manifest hashes the final source files and every CSV/JSON evidence file.
+No gate, seed, family, instance size, timing rule, or unsuccessful instance was
+changed or excluded during the certified final run. Only that complete run
+feeds the manuscript artifacts. All validation, kernel, primary, and robustness
+gates pass; all interval bounds in the primary, common-trace, and published-
+coefficient panels carry certified multiplier gaps below `1e-8` on the reported
+scale. The generated evidence manifest hashes the final executable/test source
+snapshot and every released CSV/JSON evidence file.

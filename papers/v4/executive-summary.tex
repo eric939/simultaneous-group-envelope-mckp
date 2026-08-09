@@ -1,0 +1,33 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace,microtype}
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext,newtxmath}
+\usepackage{siunitx}
+\setstretch{1.15}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\pagestyle{empty}
+\input{generated/numbers.tex}
+
+\begin{document}
+
+\begin{center}
+{\large\bfseries Executive Summary}\\[0.35em]
+{\normalsize Simultaneous Group-Envelope Bounds for $\Gamma$-Robust Multiple-Choice Knapsack Problems}\\[0.35em]
+{\small August 2026}
+\end{center}
+
+Many resource-allocation decisions choose exactly one option per group.  Protecting their shared constraint with a Bertsimas--Sim uncertainty budget produces a robust multiple-choice knapsack problem.  The classical threshold reduction is polynomial, but many distinct deviations can make complete LP certification expensive.  B\"using, Gersing, and Koster (2023) report that LP solves consume 33.1\% of runtime on average among solved instances and 93.17\% at one million items, where the root LP alone averages 1,062 seconds.  Their objective-uncertainty setting differs from ours, but it identifies the bounded-threshold LP family as a material bottleneck.
+
+After dualizing a fixed-threshold MCKP, all threshold-dependent baselines cancel.  Between consecutive group deviations, the remaining envelope is the maximum of one constant and one common-slope line.  Prefix and suffix maxima with range accumulation evaluate one multiplier over all $B$ thresholds in $O(B+K\log(B+1))$ time and $O(B+K)$ working storage, rather than $\Theta(BK)$ direct score evaluations, for $K$ options.
+
+Weak duality makes the interval minimax value a valid upper bound on every feasible fixed-threshold LP; strong LP duality gives equality on feasible singletons.  An epigraph-dual mapping proves exact-minimax dominance over the bounded-threshold group-clique LP.  Convex bracketing returns a valid bound with an explicit minimization-error certificate, and best-first splitting certifies the maximum LP value over the complete threshold family.
+
+The comparison is component-matched: both certificates use the same adaptive search, fixed-threshold solver, candidate rule, tolerance, and timing policy; only the interval upper bound differs.  A common-trace experiment also evaluates both oracles on identical intervals.  This isolates the new component rather than comparing with DnC+, a full Java/Gurobi solver that combines filtering, estimators, cuts, incumbent operations, and early termination for objective uncertainty.
+
+Across \PubPrimaryCases{} primary instances, the compressed certificate reaches tolerance throughout, wins all \PubPrimaryWins{} instance-level median comparisons, and is \PubPrimaryGeoSpeedup{} times faster in geometric mean than the sparse clique LP (95\% interval \PubPrimaryCILow--\PubPrimaryCIHigh).  Speedup rises from \PubPrimaryNLowSpeedup{} at 360 groups to \PubPrimaryNHighSpeedup{} at 1,440 groups.  All 36 robustness cases reach tolerance.  On \PubExternalCases{} published robust-knapsack coefficient sets, it wins all \PubExternalWins{} comparisons with a \PubExternalGeoSpeedup-fold advantage; this is an out-of-generator coefficient test, not replication of the source model.  Algebraic, epigraph-LP, and exhaustive-scan checks find maximum error \PubValidationMaxError{} and no certificate violation.
+
+The deliverable is a faster complete threshold-disjunctive LP certificate for use at the root or in an outer robust search.  A separate exact-integer audit confirms objective agreement and valid gap accounting, while showing that integer subproblem work can erase the oracle advantage and that compact SCIP remains preferable on many-breakpoints instances.  The claim is therefore simultaneous all-threshold evaluation for exactly-one groups, not a new uncertainty model or universal integer-solver superiority.
+
+\end{document}

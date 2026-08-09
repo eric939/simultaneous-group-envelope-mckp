@@ -1,1 +1,4 @@
 results/**/*.csv whitespace=cr-at-eol
+
+# Preserve the exact bytes distributed in the public arXiv source package.
+legacy/v2/manuscript/arxiv_v1/source/** -text -whitespace

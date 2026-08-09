@@ -3,13 +3,14 @@
 
 The experimental unit is an instance.  Timing repetitions are used only to
 estimate that instance's runtime and are never treated as independent samples.
-Method order is balanced within each instance.  The protocol and success gates
-below are written to disk before any confirmatory phase is executed.
+Method order is balanced within each instance. The complete protocol and
+success gates below are serialized with every phase.
 """
 from __future__ import annotations
 
 import argparse
 import gc
+import gzip
 import hashlib
 import itertools
 import json
@@ -19,6 +20,8 @@ import platform
 import statistics
 import sys
 import time
+import urllib.request
+import zipfile
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
@@ -38,6 +41,7 @@ from robust_mckp.exact_bnb import (  # noqa: E402
 from research.compressed_interval_oracle import (  # noqa: E402
     CompressedThetaIntervalOracle,
 )
+from research.bound_dominance import exact_minimax_epigraph_bound  # noqa: E402
 from research.novelty_go_no_go import (  # noqa: E402
     ThetaIntervalOracle,
     _write_csv,
@@ -49,7 +53,7 @@ from research.structural_feasibility_study import (  # noqa: E402
     bounded_theta_clique_lp,
     FixedThetaLPOracle,
 )
-from scripts.run_v3_experiments import build_hard_instance  # noqa: E402
+from research.benchmark_instances import build_benchmark_instance  # noqa: E402
 from scripts.run_pathC_semisynthetic_application import (  # noqa: E402
     build_portfolio,
     read_segment_calibration,
@@ -67,16 +71,39 @@ APPLICATION_SPEC = {
     "repeats": 3,
     "time_limit_seconds": 60.0,
 }
+EXTERNAL_KNAPSACK_SPEC = {
+    "source": "Gersing, Buesing, and Koster robust-knapsack benchmark archive",
+    "record_doi": "10.5281/zenodo.7419028",
+    "archive_url": "https://zenodo.org/api/records/7940637/files/RobustKnapsack.zip/content",
+    "archive_sha256": "8571b3e545607415a38a39dc506b21bd891b6a22ce252e42a1622a5a5f451818",
+    "archive_bytes": 234397168,
+    "sizes_and_seeds": {"1000": [31, 32, 33], "5000": [41, 42, 43], "10000": [51, 52, 53]},
+    "repeats": 2,
+    "time_limit_seconds": 90.0,
+    "transformation": (
+        "Each binary item becomes a two-option group. Nominal profits and weights "
+        "are retained; the published objective-deviation vector is transparently "
+        "transferred to resource deviations for this model-compatible stress test."
+    ),
+}
 
 # This object is intentionally static.  Every output directory contains an
 # exact copy plus its SHA-256 digest before numerical work begins.
 PROTOCOL = {
-    "version": "v4-publication-20260720-sparse-fair-fastlp",
+    "version": "v4-publication-20260801-certified-minimax",
     "statistical_unit": "instance",
     "timing_estimator": "median wall time within instance",
     "method_order": "alternating paired blocks within instance",
     "threads": 1,
+    "thread_environment": {
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+    },
     "relative_tolerance": RELATIVE_TOLERANCE,
+    "generator_seed_namespace": "v4|family|n|m|Gamma|seed",
     "validation": {"instances": 40, "seed_start": 1000},
     "kernel": {
         "sizes": [90, 180, 360, 720],
@@ -126,9 +153,13 @@ PROTOCOL = {
         "repeats": 2,
         "time_limit_seconds": 90.0,
     },
+    "application": APPLICATION_SPEC,
+    "external_knapsack": EXTERNAL_KNAPSACK_SPEC,
     "gates": {
         "validation_max_absolute_error": 2e-6,
         "validation_minimum_slack": -2e-6,
+        "validation_certificate_max_violation": 2e-6,
+        "validation_max_scaled_certificate_gap": 1.1e-8,
         "kernel_geomean_speedup_n_ge_360": 3.0,
         "kernel_identity_max_absolute_error": 2e-6,
         "primary_compressed_tolerance_rate": 1.0,
@@ -447,6 +478,8 @@ def run_validation(output_dir: Path) -> dict:
             if np.any(feasible):
                 direct_error = max(direct_error, float(np.max(np.abs(actual[feasible] - direct[feasible]))))
         interval_error = 0.0
+        certificate_violation = 0.0
+        maximum_scaled_certificate_gap = 0.0
         for _ in range(3):
             lo, hi = sorted(rng.integers(0, len(dense.thetas), size=2).tolist())
             dense_bound = dense.bound(int(lo), int(hi))
@@ -455,6 +488,21 @@ def run_validation(output_dir: Path) -> dict:
                 interval_error,
                 abs(dense_bound.upper_bound - compressed_bound.upper_bound),
             )
+            exact_bound = exact_minimax_epigraph_bound(instance, int(lo), int(hi))
+            if math.isfinite(exact_bound.upper_bound):
+                certificate_violation = max(
+                    certificate_violation,
+                    exact_bound.upper_bound - compressed_bound.upper_bound,
+                    compressed_bound.lower_bound - exact_bound.upper_bound,
+                    compressed_bound.upper_bound
+                    - exact_bound.upper_bound
+                    - compressed_bound.optimality_gap,
+                )
+                maximum_scaled_certificate_gap = max(
+                    maximum_scaled_certificate_gap,
+                    compressed_bound.optimality_gap
+                    / max(1.0, abs(compressed_bound.upper_bound)),
+                )
         compressed_root = compressed.bound(0, len(compressed.thetas) - 1)
         fixed_oracle = FixedThetaLPOracle(instance)
         fixed_lp_error = 0.0
@@ -480,6 +528,8 @@ def run_validation(output_dir: Path) -> dict:
                 "value_identity_error": value_error,
                 "direct_formula_error": direct_error,
                 "interval_bound_error": interval_error,
+                "certificate_violation": max(0.0, certificate_violation),
+                "maximum_scaled_certificate_gap": maximum_scaled_certificate_gap,
                 "fixed_lp_error": fixed_lp_error,
                 "root_validity_slack": slack,
                 "full_scan_seconds": scan_seconds,
@@ -496,14 +546,26 @@ def run_validation(output_dir: Path) -> dict:
         for row in rows
     )
     minimum_slack = min(float(row["root_validity_slack"]) for row in rows)
+    maximum_certificate_violation = max(
+        float(row["certificate_violation"]) for row in rows
+    )
+    maximum_scaled_certificate_gap = max(
+        float(row["maximum_scaled_certificate_gap"]) for row in rows
+    )
     gates = PROTOCOL["gates"]
     summary = {
         "instances": len(rows),
         "maximum_absolute_error": maximum_error,
         "minimum_validity_slack": minimum_slack,
+        "maximum_certificate_violation": maximum_certificate_violation,
+        "maximum_scaled_certificate_gap": maximum_scaled_certificate_gap,
         "gates": {
             "identity": maximum_error <= float(gates["validation_max_absolute_error"]),
             "validity": minimum_slack >= float(gates["validation_minimum_slack"]),
+            "certificate": maximum_certificate_violation
+            <= float(gates["validation_certificate_max_violation"]),
+            "certificate_tolerance": maximum_scaled_certificate_gap
+            <= float(gates["validation_max_scaled_certificate_gap"]),
         },
     }
     summary["pass"] = all(summary["gates"].values())
@@ -569,13 +631,13 @@ def run_kernel(output_dir: Path) -> dict:
     raw: list[dict] = []
     multipliers = [float(value) for value in spec["lambda_multipliers"]]
     for family, n, seed in itertools.product(spec["families"], spec["sizes"], spec["seeds"]):
-        instance = build_hard_instance(
+        instance = build_benchmark_instance(
             str(family), int(n), int(spec["menu_size"]), _gamma(int(n), str(spec["gamma_rule"])), int(seed)
         )
         dense_times, dense_results, compressed_times, compressed_results = [], [], [], []
         for repeat in range(int(spec["repeats"])):
             order = ("dense", "compressed") if (repeat + int(seed)) % 2 == 0 else ("compressed", "dense")
-            for method in order:
+            for order_index, method in enumerate(order):
                 elapsed, result = _time_call(lambda method=method: _kernel_call(instance, method, multipliers))
                 raw.append(
                     {
@@ -584,6 +646,7 @@ def run_kernel(output_dir: Path) -> dict:
                         "n": n,
                         "seed": seed,
                         "repeat": repeat,
+                        "execution_order": "first" if order_index == 0 else "second",
                         "method": method,
                         "total_seconds": elapsed,
                         "construct_seconds": result["construct_seconds"],
@@ -678,13 +741,18 @@ def _common_trace_call(
     intervals: Sequence[tuple[int, int]],
 ) -> dict:
     bounds: list[float] = []
+    certificate_gaps: list[float] = []
+    certificates: list[bool] = []
     matrix_nnz = 0
     matrix_storage_bytes = 0
     solver_iterations = 0
     if method == "compressed":
         oracle = CompressedThetaIntervalOracle(instance)
         for lo, hi in intervals:
-            bounds.append(float(oracle.bound(lo, hi).upper_bound))
+            result = oracle.bound(lo, hi)
+            bounds.append(float(result.upper_bound))
+            certificate_gaps.append(float(result.optimality_gap))
+            certificates.append(bool(result.certified))
     else:
         thetas = np.asarray(build_full_theta_candidates(instance), dtype=float)
         for lo, hi in intervals:
@@ -700,6 +768,8 @@ def _common_trace_call(
             solver_iterations += int(diagnostics["solver_iterations"])
     return {
         "bounds": bounds,
+        "certificate_gaps": certificate_gaps,
+        "certificates": certificates,
         "matrix_nnz": matrix_nnz,
         "matrix_storage_bytes": matrix_storage_bytes,
         "solver_iterations": solver_iterations,
@@ -713,7 +783,7 @@ def run_common_trace(output_dir: Path) -> dict:
     for family, n, seed in itertools.product(
         spec["families"], spec["sizes"], spec["seeds"]
     ):
-        instance = build_hard_instance(
+        instance = build_benchmark_instance(
             str(family),
             int(n),
             int(spec["menu_size"]),
@@ -752,6 +822,19 @@ def run_common_trace(output_dir: Path) -> dict:
                 "clique_seconds": clique_median,
                 "speedup": clique_median / max(compressed_median, 1e-12),
                 "compressed_bound_le_clique_rate": float(np.mean(dominance)),
+                "all_compressed_bounds_certified": all(compressed["certificates"]),
+                "maximum_compressed_certificate_gap": max(
+                    compressed["certificate_gaps"], default=0.0
+                ),
+                "maximum_compressed_scaled_certificate_gap": max(
+                    (
+                        gap / max(1.0, abs(bound))
+                        for gap, bound in zip(
+                            compressed["certificate_gaps"], compressed["bounds"]
+                        )
+                    ),
+                    default=0.0,
+                ),
                 "clique_matrix_nnz": clique["matrix_nnz"],
                 "clique_matrix_storage_bytes": clique["matrix_storage_bytes"],
                 "clique_solver_iterations": clique["solver_iterations"],
@@ -759,6 +842,8 @@ def run_common_trace(output_dir: Path) -> dict:
         )
         for method, times in (("compressed", compressed_times), ("clique", clique_times)):
             for repeat, seconds in enumerate(times):
+                compressed_first = (repeat + int(seed)) % 2 == 0
+                method_first = compressed_first == (method == "compressed")
                 raw.append(
                     {
                         "instance": instance.name,
@@ -767,6 +852,7 @@ def run_common_trace(output_dir: Path) -> dict:
                         "seed": seed,
                         "method": method,
                         "repeat": repeat,
+                        "execution_order": "first" if method_first else "second",
                         "seconds": seconds,
                     }
                 )
@@ -779,6 +865,12 @@ def run_common_trace(output_dir: Path) -> dict:
         "wins": int(sum(float(row["speedup"]) > 1.0 for row in rows)),
         "bound_dominance_rate": float(
             np.mean([float(row["compressed_bound_le_clique_rate"]) for row in rows])
+        ),
+        "all_compressed_bounds_certified": all(
+            bool(row["all_compressed_bounds_certified"]) for row in rows
+        ),
+        "maximum_scaled_certificate_gap": max(
+            float(row["maximum_compressed_scaled_certificate_gap"]) for row in rows
         ),
     }
     _json_dump(output_dir / "common_trace_summary.json", summary)
@@ -867,6 +959,21 @@ def _adaptive_instance_row(
         "compressed_theta_fraction": compressed["theta_lp_evaluations"] / theta_count,
         "clique_theta_fraction": clique["theta_lp_evaluations"] / theta_count,
         "compressed_splits": compressed["interval_splits"],
+        "compressed_interval_bound_evaluations": compressed[
+            "interval_bound_evaluations"
+        ],
+        "compressed_multiplier_evaluations": compressed[
+            "multiplier_evaluations"
+        ],
+        "compressed_all_interval_bounds_certified": compressed[
+            "all_interval_bounds_certified"
+        ],
+        "compressed_maximum_oracle_optimality_gap": compressed[
+            "maximum_oracle_optimality_gap"
+        ],
+        "compressed_maximum_scaled_oracle_optimality_gap": compressed[
+            "maximum_scaled_oracle_optimality_gap"
+        ],
         "clique_splits": clique["interval_splits"],
         "clique_interval_lp_evaluations": clique["interval_lp_evaluations"],
         "clique_interval_matrix_nnz": clique["interval_matrix_nnz"],
@@ -927,7 +1034,7 @@ def run_primary(output_dir: Path) -> dict:
     rows: list[dict] = []
     raw: list[dict] = []
     for family, n, seed in itertools.product(spec["families"], spec["sizes"], spec["seeds"]):
-        instance = build_hard_instance(
+        instance = build_benchmark_instance(
             str(family), int(n), int(spec["menu_size"]), _gamma(int(n), str(spec["gamma_rule"])), int(seed)
         )
         row, raw_rows = _adaptive_instance_row(
@@ -948,6 +1055,17 @@ def run_primary(output_dir: Path) -> dict:
     summary["maximum_final_lower_bound_relative_difference"] = max(
         float(row["final_lower_bound_relative_difference"]) for row in rows
     )
+    summary["all_interval_bounds_certified"] = all(
+        bool(row["compressed_all_interval_bounds_certified"]) for row in rows
+    )
+    summary["maximum_scaled_oracle_optimality_gap"] = max(
+        float(row["compressed_maximum_scaled_oracle_optimality_gap"])
+        for row in rows
+    )
+    summary["maximum_oracle_optimality_gap"] = max(
+        float(row["compressed_maximum_oracle_optimality_gap"])
+        for row in rows
+    )
     summary["gates"] = _primary_gates(summary)
     summary["pass"] = all(summary["gates"].values())
     _json_dump(output_dir / "primary_summary.json", summary)
@@ -960,7 +1078,7 @@ def run_robustness(output_dir: Path) -> dict:
     raw: list[dict] = []
     n = int(spec["n"])
     for config, family, seed in itertools.product(spec["configurations"], spec["families"], spec["seeds"]):
-        instance = build_hard_instance(
+        instance = build_benchmark_instance(
             str(family), n, int(config["menu_size"]), _gamma(n, str(config["gamma_rule"])), int(seed)
         )
         row, raw_rows = _adaptive_instance_row(
@@ -1008,7 +1126,7 @@ def run_stress(output_dir: Path) -> dict:
     rows: list[dict] = []
     raw: list[dict] = []
     for family, n, seed in itertools.product(spec["families"], spec["sizes"], spec["seeds"]):
-        instance = build_hard_instance(
+        instance = build_benchmark_instance(
             str(family), int(n), int(spec["menu_size"]), _gamma(int(n), str(spec["gamma_rule"])), int(seed)
         )
         row, raw_rows = _adaptive_instance_row(
@@ -1061,7 +1179,7 @@ def run_application(output_dir: Path, calibration_dir: Path) -> dict:
         raw.extend(raw_rows)
         _write_csv(output_dir / "application.csv", rows)
         _write_csv(output_dir / "application_raw_timings.csv", raw)
-    summary = summarize_paired_rows(rows, bootstrap_seed=20260720)
+    summary = summarize_paired_rows(rows, bootstrap_seed=20260721)
     calibration_file = calibration_dir / "segment_calibration.csv"
     summary.update(
         {
@@ -1076,21 +1194,171 @@ def run_application(output_dir: Path, calibration_dir: Path) -> dict:
     return summary
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def ensure_external_knapsack_archive(path: Path) -> Path:
+    """Download and verify the published CC-BY benchmark archive if needed."""
+
+    expected = str(EXTERNAL_KNAPSACK_SPEC["archive_sha256"])
+    if path.is_file() and _sha256_file(path) == expected:
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".part")
+    urllib.request.urlretrieve(str(EXTERNAL_KNAPSACK_SPEC["archive_url"]), temporary)
+    actual = _sha256_file(temporary)
+    if actual != expected:
+        temporary.unlink(missing_ok=True)
+        raise ValueError(
+            f"external archive checksum mismatch: expected={expected}, actual={actual}"
+        )
+    temporary.replace(path)
+    return path
+
+
+def build_external_knapsack_instance(
+    archive_path: Path,
+    *,
+    n: int,
+    seed: int,
+) -> PricingInstance:
+    """Map a published binary knapsack into two-option robust-choice groups.
+
+    If item i is not selected, its margin is capacity/n; if it is selected,
+    its margin is capacity/n minus its nominal weight. Summing group margins
+    therefore gives capacity minus selected weight. The published deviation
+    vector is used as the selected option's resource deviation. This is a
+    coefficient-transfer benchmark, not a claim to reproduce the archive's
+    original uncertain-objective model.
+    """
+
+    stem = f"knapsack_n={int(n)}_seed={int(seed)}"
+    nominal_member = f"RobustKnapsack/NominalKnapsacks/{stem}.mps.gz"
+    robust_member = f"RobustKnapsack/RobustnessComponents/{stem}.txt"
+    with zipfile.ZipFile(archive_path) as archive:
+        nominal_text = gzip.decompress(archive.read(nominal_member)).decode("utf-8")
+        robust_text = archive.read(robust_member).decode("utf-8")
+
+    objectives: dict[str, float] = {}
+    weights: dict[str, float] = {}
+    capacity: float | None = None
+    section = ""
+    headers = {"NAME", "ROWS", "COLUMNS", "RHS", "BOUNDS", "ENDATA"}
+    for line in nominal_text.splitlines():
+        tokens = line.split()
+        if not tokens:
+            continue
+        if tokens[0] in headers:
+            section = tokens[0]
+            continue
+        if section == "COLUMNS" and tokens[0] != "MARKER":
+            variable = tokens[0]
+            for cursor in range(1, len(tokens), 2):
+                row, coefficient = tokens[cursor], float(tokens[cursor + 1])
+                if row == "OBJ":
+                    objectives[variable] = -coefficient
+                elif row == "capConstr":
+                    weights[variable] = coefficient
+        elif section == "RHS":
+            for cursor in range(1, len(tokens), 2):
+                if tokens[cursor] == "capConstr":
+                    capacity = float(tokens[cursor + 1])
+
+    robust_lines = [line.strip() for line in robust_text.splitlines() if line.strip()]
+    gamma = int(float(robust_lines[0].split(":", 1)[1]))
+    deviations = {
+        variable: abs(float(value))
+        for variable, value in (line.split(":", 1) for line in robust_lines[1:])
+    }
+    if capacity is None or len(objectives) != n or set(objectives) != set(weights):
+        raise ValueError(f"unexpected published knapsack structure for {stem}")
+    names = sorted(objectives, key=lambda name: int(name.removeprefix("x")))
+    capacity_share = capacity / n
+    items = [
+        [
+            Option(value=0.0, margin=capacity_share, uncertainty=0.0),
+            Option(
+                value=float(objectives[name]),
+                margin=float(capacity_share - weights[name]),
+                uncertainty=float(deviations.get(name, 0.0)),
+            ),
+        ]
+        for name in names
+    ]
+    return PricingInstance(items=items, gamma=gamma, name=f"rwth_{stem}")
+
+
+def run_external_knapsack(output_dir: Path, archive_path: Path) -> dict:
+    archive = ensure_external_knapsack_archive(archive_path)
+    rows: list[dict] = []
+    raw: list[dict] = []
+    for n_text, seeds in EXTERNAL_KNAPSACK_SPEC["sizes_and_seeds"].items():
+        n = int(n_text)
+        for seed in seeds:
+            instance = build_external_knapsack_instance(
+                archive, n=n, seed=int(seed)
+            )
+            row, raw_rows = _adaptive_instance_row(
+                instance,
+                family="rwth_knapsack",
+                n=n,
+                seed=int(seed),
+                repeats=int(EXTERNAL_KNAPSACK_SPEC["repeats"]),
+                time_limit=float(EXTERNAL_KNAPSACK_SPEC["time_limit_seconds"]),
+                configuration="external_coefficient_transfer",
+            )
+            rows.append(row)
+            raw.extend(raw_rows)
+            _write_csv(output_dir / "external_knapsack.csv", rows)
+            _write_csv(output_dir / "external_knapsack_raw_timings.csv", raw)
+    summary = summarize_paired_rows(rows, bootstrap_seed=20260721)
+    summary.update(
+        {
+            "source": EXTERNAL_KNAPSACK_SPEC["source"],
+            "record_doi": EXTERNAL_KNAPSACK_SPEC["record_doi"],
+            "archive_sha256": _sha256_file(archive),
+            "transformation": EXTERNAL_KNAPSACK_SPEC["transformation"],
+            "design": EXTERNAL_KNAPSACK_SPEC,
+            "timing_stability": summarize_timing_stability(raw),
+            "all_interval_bounds_certified": all(
+                bool(row["compressed_all_interval_bounds_certified"])
+                for row in rows
+            ),
+            "maximum_scaled_oracle_optimality_gap": max(
+                float(row["compressed_maximum_scaled_oracle_optimality_gap"])
+                for row in rows
+            ),
+        }
+    )
+    _json_dump(output_dir / "external_knapsack_summary.json", summary)
+    return summary
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=["protocol", "validate", "kernel", "trace", "primary", "robustness", "stress", "application"],
+        choices=["protocol", "validate", "kernel", "trace", "primary", "robustness", "stress", "application", "external"],
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=ROOT / "results" / "v4_publication_20260720_final",
+        default=ROOT / "results" / "release",
     )
     parser.add_argument(
         "--calibration-dir",
         type=Path,
         default=ROOT / "results" / "pathC" / "calibration",
+    )
+    parser.add_argument(
+        "--external-archive",
+        type=Path,
+        default=ROOT / "data_cache" / "RobustKnapsack.zip",
     )
     return parser.parse_args()
 
@@ -1113,8 +1381,12 @@ def main() -> None:
         result = run_robustness(output_dir)
     elif args.command == "stress":
         result = run_stress(output_dir)
-    else:
+    elif args.command == "application":
         result = run_application(output_dir, args.calibration_dir.resolve())
+    else:
+        result = run_external_knapsack(
+            output_dir, args.external_archive.expanduser().resolve()
+        )
     print(json.dumps(result, indent=2, sort_keys=True))
 
 

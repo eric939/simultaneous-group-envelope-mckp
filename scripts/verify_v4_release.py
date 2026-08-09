@@ -13,14 +13,15 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_RESULTS = ROOT / "results" / "v4_publication_20260720_final"
-DEFAULT_PAPER = ROOT / "paper_versions" / "v4"
+DEFAULT_RESULTS = ROOT / "results" / "release"
+DEFAULT_PAPER = ROOT / "papers" / "v4"
 TEXT_ARTIFACTS = (
-    "auto/v4_publication_numbers.tex",
-    "tables/v4_primary_publication.tex",
-    "tables/v4_robustness_publication.tex",
-    "tables/v4_kernel_publication.tex",
-    "tables/v4_stress_publication.tex",
+    "generated/numbers.tex",
+    "generated/table-primary.tex",
+    "generated/table-robustness.tex",
+    "generated/table-kernel.tex",
+    "generated/table-stress.tex",
+    "generated/table-external.tex",
 )
 
 
@@ -49,7 +50,7 @@ def main() -> None:
     args = parser.parse_args()
     results = args.results.resolve()
     paper = args.paper.resolve()
-    manifest_path = paper / "auto" / "v4_evidence_manifest.json"
+    manifest_path = paper / "generated" / "evidence-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     for relative, expected in manifest["files"].items():
@@ -80,6 +81,7 @@ def main() -> None:
         "robustness": 36,
         "stress": 8,
         "application": 9,
+        "external_knapsack": 9,
     }
     for stem, expected in expected_counts.items():
         rows = csv_rows(results / f"{stem}.csv")
@@ -103,12 +105,40 @@ def main() -> None:
     )
 
     protocol_digest = sha256(results / "protocol.json")
+    protocol = json.loads((results / "protocol.json").read_text(encoding="utf-8"))
+    require("application" in protocol, "application design missing from protocol")
+    required_thread_environment = protocol.get("thread_environment", {})
+    require(
+        required_thread_environment
+        and all(value == "1" for value in required_thread_environment.values()),
+        "protocol does not require single-thread environment controls",
+    )
     for environment in results.glob("environment_*.json"):
         record = json.loads(environment.read_text(encoding="utf-8"))
         require(
             record["protocol_sha256"] == protocol_digest,
             f"protocol digest mismatch in {environment.name}",
         )
+        observed_threads = record.get("thread_environment", {})
+        require(
+            all(
+                observed_threads.get(key) == value
+                for key, value in required_thread_environment.items()
+            ),
+            f"thread controls were not recorded in {environment.name}",
+        )
+
+    exact_environment = json.loads(
+        (exact_dir / "environment_exact_integration.json").read_text(encoding="utf-8")
+    )
+    observed_exact_threads = exact_environment.get("thread_environment", {})
+    require(
+        all(
+            observed_exact_threads.get(key) == value
+            for key, value in required_thread_environment.items()
+        ),
+        "thread controls were not recorded in exact integration audit",
+    )
 
     calibration = results / "uci_calibration"
     config = json.loads((calibration / "calibration_config.json").read_text(encoding="utf-8"))

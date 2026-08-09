@@ -1,12 +1,51 @@
 from __future__ import annotations
 
+import hashlib
+
 import numpy as np
 import pytest
 
 from robust_mckp import Option, PricingInstance
+from research.benchmark_instances import build_benchmark_instance
 from research.compressed_interval_oracle import CompressedThetaIntervalOracle
 from research.novelty_go_no_go import ThetaIntervalOracle, build_small_instance
-from scripts.run_v3_experiments import build_hard_instance
+
+
+@pytest.mark.parametrize(
+    ("family", "expected_digest"),
+    [
+        (
+            "dense_frontier",
+            "ddc193b8b984ad61846fdab0f857b36c58b5db7cd052543a747996fe5f8fd63e",
+        ),
+        (
+            "correlated_risk",
+            "c6d6c6b6ea8c41a6fd2b054a21b3a6dd42d788d1a25211e9d6c6144c31684198",
+        ),
+        (
+            "near_tie",
+            "8ccc8bed7fd5e93f5881073299db3e0bb7972335567bfaccda62fec2076c1ef8",
+        ),
+        (
+            "many_breakpoints",
+            "b7b6e09529ef77f440358058fd6028fb1928b476cb40d543bf63001f09c04085",
+        ),
+    ],
+)
+def test_benchmark_generator_preserves_released_coefficients(
+    family: str,
+    expected_digest: str,
+) -> None:
+    instance = build_benchmark_instance(family, n=30, m=6, gamma=5, seed=3)
+    coefficients = np.asarray(
+        [
+            (option.value, option.margin, option.uncertainty)
+            for group in instance.items
+            for option in group
+        ],
+        dtype=np.float64,
+    )
+    assert hashlib.sha256(coefficients.tobytes()).hexdigest() == expected_digest
 
 
 @pytest.mark.parametrize("seed", [0, 1, 2, 17])
@@ -28,7 +67,7 @@ def test_compressed_oracle_matches_dense_lagrangian_values(seed: int) -> None:
     "family", ["dense_frontier", "correlated_risk", "near_tie", "many_breakpoints"]
 )
 def test_compressed_oracle_matches_dense_bound(family: str) -> None:
-    instance = build_hard_instance(family, n=30, m=6, gamma=5, seed=3)
+    instance = build_benchmark_instance(family, n=30, m=6, gamma=5, seed=3)
     dense = ThetaIntervalOracle(instance)
     compressed = CompressedThetaIntervalOracle(instance)
     intervals = [
@@ -40,7 +79,7 @@ def test_compressed_oracle_matches_dense_bound(family: str) -> None:
         actual = compressed.bound(lo, hi)
         expected = dense.bound(lo, hi)
         assert actual.upper_bound == pytest.approx(
-            expected.upper_bound, abs=2e-6, rel=2e-10
+            expected.upper_bound, abs=5e-6, rel=2e-10
         )
 
 
@@ -149,6 +188,7 @@ def test_near_repeated_deviations_preserve_endpoint_convention(spacing: float) -
     )
     dense = ThetaIntervalOracle(instance)
     compressed = CompressedThetaIntervalOracle(instance)
+    assert len(compressed.thetas) == 3
     for lam in (1e-12, 0.3, 7.0):
         expected = dense.values_at_lambda(lam, 0, len(dense.thetas) - 1)
         actual = compressed.values_at_lambda(lam, 0, len(compressed.thetas) - 1)

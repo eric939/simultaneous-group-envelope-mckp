@@ -1,0 +1,64 @@
+{
+  "bootstrap_strata": "family_x_size",
+  "calibration_sha256": "1ba04343eb853439f184a55dbd6ac3dbeac6f6438ef1b9dcc8b0173e3a40b7f6",
+  "calibration_source": "local_public_csv",
+  "compressed_tolerance_rate": 1.0,
+  "dataset": "UCI Online Retail (id 352)",
+  "design": {
+    "dataset": "UCI Online Retail (id 352)",
+    "gamma_rule": "floor(sqrt(n))",
+    "menu_size": 12,
+    "repeats": 3,
+    "seeds": [
+      61,
+      62,
+      63
+    ],
+    "sizes": [
+      360,
+      720,
+      1440
+    ],
+    "time_limit_seconds": 60.0
+  },
+  "families_with_median_speedup_gt_one": 1,
+  "family_median_speedup": {
+    "uci_online_retail": 1.405296624120254
+  },
+  "geomean_speedup": 1.4573623357507202,
+  "geomean_speedup_ci95": [
+    1.2421514501702735,
+    1.7539887952630768
+  ],
+  "instances": 9,
+  "joint_tolerance_rate": 1.0,
+  "median_compressed_theta_fraction": 0.005285678328718852,
+  "median_speedup": 1.405296624120254,
+  "root_dominance_rate": 1.0,
+  "sign_test_pvalue": 0.001953125,
+  "size_geomean_speedup": {
+    "1440": 1.6970547931270155,
+    "360": 1.2454316628845368,
+    "720": 1.464491504682871
+  },
+  "timing_stability": {
+    "geomean_repeat_block_speedup": 1.4394631152744326,
+    "maximum_within_instance_cv": {
+      "clique": 0.037668097613451454,
+      "compressed": 0.24538460164616002
+    },
+    "median_first_over_second_time": {
+      "clique": 0.9974008904743713,
+      "compressed": 0.9969459767881103
+    },
+    "median_within_instance_cv": {
+      "clique": 0.0026368645250098716,
+      "compressed": 0.0017799110387677515
+    },
+    "minimum_repeat_block_speedup": 0.9991155703053849,
+    "repeat_block_wins": 26,
+    "repeat_blocks": 27
+  },
+  "win_rate": 1.0,
+  "wins": 9
+}

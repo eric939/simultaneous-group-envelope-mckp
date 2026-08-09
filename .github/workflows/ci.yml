@@ -1,0 +1,29 @@
+name: v4 verification
+
+on:
+  push:
+    branches: [v4]
+  pull_request:
+    branches: [v4]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install exact polyhedral tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcdd-tools
+      - name: Install verification dependencies
+        run: python -m pip install -e ".[experiments,validation,dev]"
+      - name: Verify tests, evidence hashes, gates, and generated artifacts
+        run: make verify PYTHON=python
