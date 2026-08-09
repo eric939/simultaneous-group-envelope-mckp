@@ -33,8 +33,8 @@ make anonymous PYTHON=.venv/bin/python
 The same target also builds `pdf/full.pdf`, the convenient combined
 main-plus-appendix version; it is not a separate journal upload.
 
-The current local builds are 17 pages for each OPRE main-paper variant, four
-pages for each companion, 17 pages for the combined reading version, and one
+The current local builds are 20 pages for each OPRE main-paper variant, four
+pages for each companion, 19 pages for the combined reading version, and one
 page for the executive summary. The summary is cover-letter support and should
 be uploaded only if the journal permits it.
 
@@ -52,7 +52,7 @@ or `CITATION.cff` in an anonymous submission.
 
 ## Public GitHub artifact
 
-Repository: <https://github.com/eric939/robust_mckp>
+Repository: <https://github.com/eric939/simultaneous-group-envelope-mckp>
 
 The v4 branch/package must expose:
 
@@ -102,13 +102,14 @@ alone are mutable and are not an archival identifier.
 
 ## Independence and disclosure rule
 
-The supplied `papers/current/cover-letter.md` presents v4 as an
-independent strategic pivot with its own research question, novelty claim,
-theorems, evidence, and submission package. Do not describe v4 as a revision,
-successor, replacement, or superseding version of v3. The cover letter must
-explicitly identify the public v3 preprint, *Robust Discrete Pricing
-Optimization via Multiple-Choice Knapsack Reductions* (arXiv:2603.18653), and
-state the precise non-overlap in model target, theorem, algorithm, and evidence.
+The supplied `papers/current/cover-letter.md` presents v4 as Paper B: a
+nonduplicative paper that builds on Paper A while retaining its own research
+question, novelty claim, theorems, evidence, and submission package. Do not
+describe v4 as a revision, replacement, or superseding version of Paper A. The
+cover letter must explicitly identify *A Certifying MCKP Framework for
+Gamma-Robust Discrete Pricing* (arXiv:2603.18653v2), state what Paper B inherits,
+and state the precise non-overlap in model target, theorem, algorithm, and
+evidence.
 Repeat that disclosure in any journal form asking about related manuscripts.
 Do not imply that the classical Bertsimas–Sim threshold reduction or
 fixed-MCKP LP geometry is new.

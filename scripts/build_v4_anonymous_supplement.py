@@ -27,6 +27,7 @@ IDENTITY = re.compile(rb"(?:" + b"|".join(IDENTITY_TERMS) + rb")", re.IGNORECASE
 TEXT_SUFFIXES = {".csv", ".json", ".md", ".py", ".tex", ".txt"}
 PUBLIC_ONLY_SOURCE_FILES = {
     "CITATION.cff",
+    "README.md",
     "SUBMISSION.md",
     "papers/v4/cover-letter.md",
     "papers/v4/main.tex",

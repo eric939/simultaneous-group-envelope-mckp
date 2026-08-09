@@ -50,17 +50,21 @@ exact-integration audit is deliberately reported as a scope boundary: integer
 subproblem work can dominate, and the paper makes no claim of universal
 superiority over compact mixed-integer optimization.
 
-For transparency, the author also has a public preprint, “Robust Discrete
-Pricing Optimization via Multiple-Choice Knapsack Reductions”
-(arXiv:2603.18653). That manuscript studies fixed-threshold MCKP hull geometry,
-rounding gaps, and a pricing application. It does not contain or anticipate the
-present paper's simultaneous all-threshold envelope evaluator, certified
-minimax algorithm, dominance theorem, adaptive interval certificate, or
-computational study. The present manuscript is therefore an independent
-strategic pivot with its own research question, theorem set, protocol, and
-evidence package; the overlap is limited to classical robust-MCKP background.
-The paper does not present the Bertsimas–Sim threshold reduction or a fixed
-MCKP relaxation as new.
+For transparency, the author also has a companion preprint, “A Certifying MCKP
+Framework for Γ-Robust Discrete Pricing” (arXiv:2603.18653v2). That Paper A
+derives the robust finite-menu pricing model, its exact full-breakpoint MCKP
+decomposition, fixed-threshold hull and one-item rounding certificates, and
+exact full-family search. The submitted manuscript cites Paper A and takes its
+threshold family as a motivating specialization. It asks a different
+algorithmic question: how to certify the largest LP value over the family
+without solving or materializing every relaxation. Its baseline cancellation,
+simultaneous two-envelope evaluator, interval minimax-dominance theorem,
+certified multiplier search, adaptive LP-family certificate, and corresponding
+evidence package do not appear in Paper A. The relationship is therefore
+cumulative but nonduplicative: Paper A supplies the model and fixed-threshold
+certification foundation, while this Paper B supplies the all-threshold
+LP-family accelerator. The manuscript does not present the Bertsimas–Sim
+threshold reduction or fixed-MCKP LP geometry as new.
 
 The manuscript and electronic companion include data-and-code statements. A
 public reproducibility repository contains the serialized protocol, raw timing

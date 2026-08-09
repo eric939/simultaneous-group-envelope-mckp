@@ -38,6 +38,33 @@ Durable contributions and boundaries:
   validation, causal demand estimation, or evidence of commercial pricing
   performance.
 
+## Paper A Freeze and Lineage Update
+
+Date: 2026-08-09.
+
+- Froze the companion Paper A as *A Certifying MCKP Framework for
+  Gamma-Robust Discrete Pricing* (arXiv:2603.18653v2) in the separate public
+  `robust_pricing_mckp` repository.
+- Updated the introduction, pricing specialization, prior-art table,
+  bibliography, cover letter, project map, and evidence ledger to state the
+  cumulative but nonduplicative relationship: Paper A owns the robust-pricing
+  model, full-breakpoint decomposition, fixed-threshold hull/rounding
+  certificates, and exact full-family search; Paper B owns the simultaneous
+  envelope, interval-minimax, and certified multiplier contributions.
+- The first post-edit verification failed on the expected `README.md` source
+  hash mismatch. No numerical evidence, algorithm, protocol, or timing policy
+  changed. The evidence manifest was regenerated from the unchanged canonical
+  `results/release/` directory after all editorial changes, rather than edited
+  manually or bypassed.
+- The first anonymous-supplement rebuild then rejected the public repository
+  URL in `README.md`. The builder now treats that file as public-only package
+  metadata and continues to supply its purpose-built anonymous README; the
+  strict identity scan remains unchanged for every included source and PDF.
+- Renamed the public projects and local worktrees to make their contribution
+  boundary visible at a glance: Paper A is `certifying-robust-pricing-mckp` and
+  Paper B is `simultaneous-group-envelope-mckp`. The internal Python import
+  package remains `robust_mckp` for API compatibility.
+
 ## Independent Release Audit and Complete Rerun
 
 Date: 2026-08-01.

@@ -11,6 +11,11 @@ latest working draft in `v4/`.
 | `v3/` | May 2026 independent paper line | `paper.pdf` |
 | `v4/` | Current August 2026 submission | `main.tex` |
 
+The editable continuation of the V2/V3 pricing line now lives in the separate
+Paper A repository, `eric939/certifying-robust-pricing-mckp`. The V2 and V3 directories
+here remain immutable provenance. This repository's only editable manuscript
+is Paper B under `v4/`.
+
 V2 and V3 payloads are immutable. Their checksums are recorded in
 `archive-manifest.sha256`. V4 is the only editable manuscript folder.
 
