@@ -1,0 +1,91 @@
+{
+  "by_configuration": {
+    "large_budget": {
+      "bootstrap_strata": "family_x_size",
+      "compressed_tolerance_rate": 1.0,
+      "families_with_median_speedup_gt_one": 4,
+      "family_median_speedup": {
+        "correlated_risk": 3.5400295808031883,
+        "dense_frontier": 1.8707286181370872,
+        "many_breakpoints": 2.752515041055047,
+        "near_tie": 3.4904839107335652
+      },
+      "geomean_speedup": 2.827782947098551,
+      "geomean_speedup_ci95": [
+        2.6612361524237467,
+        3.019746415904719
+      ],
+      "instances": 12,
+      "joint_tolerance_rate": 1.0,
+      "median_compressed_theta_fraction": 0.34615384615384615,
+      "median_speedup": 2.7974487150118437,
+      "root_dominance_rate": 1.0,
+      "sign_test_pvalue": 0.000244140625,
+      "size_geomean_speedup": {
+        "720": 2.827782947098551
+      },
+      "win_rate": 1.0,
+      "wins": 12
+    },
+    "sparse_budget": {
+      "bootstrap_strata": "family_x_size",
+      "compressed_tolerance_rate": 1.0,
+      "families_with_median_speedup_gt_one": 2,
+      "family_median_speedup": {
+        "correlated_risk": 1.6375041022769727,
+        "dense_frontier": 0.8885648064040371,
+        "many_breakpoints": 1.959044857849465,
+        "near_tie": 0.7713488453591342
+      },
+      "geomean_speedup": 1.292545813223177,
+      "geomean_speedup_ci95": [
+        1.203491124714286,
+        1.4570058238611685
+      ],
+      "instances": 12,
+      "joint_tolerance_rate": 1.0,
+      "median_compressed_theta_fraction": 0.11538461538461539,
+      "median_speedup": 1.242623811839652,
+      "root_dominance_rate": 1.0,
+      "sign_test_pvalue": 0.61279296875,
+      "size_geomean_speedup": {
+        "720": 1.292545813223177
+      },
+      "win_rate": 0.5,
+      "wins": 6
+    },
+    "wide_menu": {
+      "bootstrap_strata": "family_x_size",
+      "compressed_tolerance_rate": 1.0,
+      "families_with_median_speedup_gt_one": 4,
+      "family_median_speedup": {
+        "correlated_risk": 2.283829390096702,
+        "dense_frontier": 5.103134090006999,
+        "many_breakpoints": 1.8072404246420422,
+        "near_tie": 2.2102888194732313
+      },
+      "geomean_speedup": 2.593374117328302,
+      "geomean_speedup_ci95": [
+        2.275645078420833,
+        2.9457894511151927
+      ],
+      "instances": 12,
+      "joint_tolerance_rate": 1.0,
+      "median_compressed_theta_fraction": 0.2884615384615385,
+      "median_speedup": 2.2610201814187434,
+      "root_dominance_rate": 1.0,
+      "sign_test_pvalue": 0.000244140625,
+      "size_geomean_speedup": {
+        "720": 2.593374117328302
+      },
+      "win_rate": 1.0,
+      "wins": 12
+    }
+  },
+  "gates": {
+    "compressed_tolerance": true,
+    "configuration_breadth": true
+  },
+  "instances": 36,
+  "pass": true
+}

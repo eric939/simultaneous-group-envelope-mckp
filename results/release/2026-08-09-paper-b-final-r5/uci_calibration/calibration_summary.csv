@@ -1,0 +1,2 @@
+source_requested,source_used,sku_rows,segment_rows,public_data_used,notes
+uci_online_retail,local_public_csv,2549,5,True,Local public-data aggregate used

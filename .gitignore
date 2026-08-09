@@ -1,0 +1,13 @@
+.DS_Store
+**/.DS_Store
+.venv/
+.pytest_cache/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.egg-info/
+data_cache/
+tmp/
+results/local/
+*~
+*.swp

@@ -1,0 +1,7 @@
+{
+  "source": "uci_online_retail",
+  "max_rows": 200000,
+  "min_sku_observations": 8,
+  "cache_dir": "data_cache/pathC_uci",
+  "output_dir": "results/v4_publication_20260720_final/uci_calibration"
+}

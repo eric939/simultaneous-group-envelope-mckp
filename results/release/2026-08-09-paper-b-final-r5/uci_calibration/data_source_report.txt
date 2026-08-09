@@ -1,0 +1,13 @@
+Path C data calibration report
+Requested source: uci_online_retail
+ucimlrepo is installed, but this lightweight script does not download raw data automatically.
+Loaded local cached retail-like CSV: data_cache/pathC_uci/online_retail_uci.csv
+Retained SKU rows: 2549
+
+source_used: local_public_csv
+public_data_used: True
+Generated files:
+- calibration_summary.csv
+- sku_calibration.csv
+- segment_calibration.csv
+- calibration_config.json
