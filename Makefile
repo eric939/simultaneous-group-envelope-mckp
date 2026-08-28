@@ -1,10 +1,11 @@
 PYTHON ?= python3
 RELEASE_DIR ?= results/release/2026-08-09-paper-b-final-r5
+V2_ANALYSIS_DIR ?= results/release/2026-08-28-paper-b-v2-analysis
 LOCAL_DIR ?= results/local/paper-b-reproduction
 CALIBRATION_DIR ?= $(RELEASE_DIR)/uci_calibration
 EXTERNAL_ARCHIVE ?= data_cache/RobustKnapsack.zip
 
-.PHONY: install test verify reproduce exact-audit clean
+.PHONY: install test verify derive-v2 reproduce exact-audit clean
 
 install:
 	uv sync --frozen --extra experiments --extra validation --extra dev
@@ -13,7 +14,20 @@ test:
 	$(PYTHON) -m pytest -q
 
 verify: test
-	$(PYTHON) scripts/verify_release.py --release-dir $(RELEASE_DIR)
+	$(PYTHON) scripts/verify_release.py \
+		--release-dir $(RELEASE_DIR) \
+		--v2-analysis-dir $(V2_ANALYSIS_DIR)
+
+derive-v2:
+	mkdir -p results/local/v2-analysis
+	$(PYTHON) scripts/analyze_v2_operating_region.py \
+		--release-root $(RELEASE_DIR) \
+		--output-dir results/local/v2-analysis
+	$(PYTHON) scripts/plot_v2_evidence.py \
+		--release-dir $(RELEASE_DIR) \
+		--output-dir results/local/v2-analysis
+	$(PYTHON) scripts/plot_common_hinge_mechanism.py \
+		--output-dir results/local/v2-analysis
 
 reproduce: test
 	env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \

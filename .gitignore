@@ -11,3 +11,18 @@ tmp/
 results/local/
 *~
 *.swp
+
+# Manuscript and submission artifacts live in the publication workspace.
+papers/
+manuscript/
+submission_packages/
+build/
+*.tex
+*.pdf
+*.docx
+*.aux
+*.bbl
+*.blg
+*.synctex.gz
+*.fls
+*.fdb_latexmk

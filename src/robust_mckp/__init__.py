@@ -11,7 +11,7 @@ from .exact_bnb import (
     solve_fixed_theta_bnb,
     solve_global_theta_bnb,
 )
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 __all__ = [
     "__version__",

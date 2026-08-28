@@ -1,0 +1,20 @@
+{
+  "analysis": "post_hoc_descriptive",
+  "correlations": {
+    "log_speedup_vs_log_breakpoints_per_group": -0.5032014246388284,
+    "log_speedup_vs_log_clique_iterations_per_bound": 0.6486283096616107
+  },
+  "input_sha256": {
+    "application.csv": "69a06a46dca1a0d8f5a8a92a7b1bf223ce4a1eb45665908491a9006e66c2337f",
+    "external_knapsack.csv": "4f8f7915eef269d9398a61f2003a4d3a7bd5d15249302cc0c935d96ecfdb3f51",
+    "primary.csv": "c4633cbddb474ab95249d26ee7e41bd1dd9927d9ce8bad760bc5e2c293047e4b",
+    "robustness.csv": "3bfd906d9f796618f883117cfeb501bf8ee052bb44d9f4c42260c27c9741bbea",
+    "stress.csv": "36327792b91ffd0590e23ac490eefe2727a07de3db6c0d0c07c6ee98b32ee7f6"
+  },
+  "instances": 122,
+  "interpretation": "Hypothesis-generating only. The panels differ jointly in scale, menu width, breakpoint structure, and solver work.",
+  "pricing_theta_fraction_medians": {
+    "clique": 0.0074794315632011965,
+    "compressed": 0.005285678328718852
+  }
+}

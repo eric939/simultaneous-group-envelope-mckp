@@ -2,21 +2,20 @@
 
 ## Environment
 
-The checked-in `uv.lock` freezes the dependency graph used by the final
-computational release.
+The checked-in `uv.lock` freezes the dependency graph used by the release.
 
 ```bash
 uv sync --frozen --extra experiments --extra validation --extra dev
 ```
 
-The released campaign used Python 3.14.2, NumPy 2.5.1, SciPy 1.18.0 with
-HiGHS 1.12.0, and one Apple M4 thread. Phase-specific dependency, machine, and
-thread-control records are included as `environment_*.json` files. The exact
-integration audit additionally records PySCIPOpt and SCIP versions.
+The frozen August campaign used Python 3.14.2, NumPy 2.5.1, SciPy 1.18.0
+with HiGHS 1.12.0, and one Apple M4 thread. Phase-specific dependency,
+machine, and thread-control records are included as `environment_*.json`.
+The exact-integration audit additionally records PySCIPOpt and SCIP versions.
 
 The implementation requires aggregate objective minima and maxima to remain
-finite and representable in binary64. Inputs outside that explicit numerical
-domain are rejected with rescaling guidance.
+finite and representable in binary64. Inputs outside that domain are rejected
+with rescaling guidance.
 
 ## Verify the released evidence
 
@@ -27,13 +26,30 @@ make verify PYTHON=.venv/bin/python
 The verifier:
 
 1. runs the complete test suite;
-2. checks the SHA-256 manifest against every released CSV, JSON, and text file;
-3. checks all validation, kernel, primary, robustness, and exact-integration
-   gates and row counts;
-4. checks protocol digests and recorded single-thread controls; and
-5. checks the released public-data calibration aggregates.
+2. checks all 41 base-release hashes;
+3. checks validation, kernel, primary, robustness, application, external, and
+   exact-integration gates and row counts;
+4. checks protocol digests, environment records, thread controls, and public
+   calibration aggregates;
+5. checks the v2 derived-release manifest;
+6. recomputes its 122-row post-hoc statistics from the frozen base CSVs; and
+7. rejects tracked manuscript, build, or raw-data artifacts.
 
-The check does not need manuscript source, publication metadata, or LaTeX.
+The check does not need manuscript source, publication metadata, LaTeX, or raw
+UCI transactions.
+
+## Regenerate the v2 analysis
+
+```bash
+make derive-v2 PYTHON=.venv/bin/python
+```
+
+Fresh CSV, JSON, and PNG outputs are written to
+`results/local/v2-analysis/`. The analysis combines the primary, robustness,
+stress, coefficient-transfer, and pricing-derived panels. It must reproduce
+122 rows, the recorded input hashes, the two log correlations, and the two
+pricing fixed-LP medians. These quantities are hypothesis-generating and do
+not validate a method selector or identify a runtime cause.
 
 ## Full end-to-end rerun
 
@@ -41,13 +57,13 @@ The check does not need manuscript source, publication metadata, or LaTeX.
 make reproduce PYTHON=.venv/bin/python
 ```
 
-This runs the tests and every serialized campaign phase, then executes the
-separate exact-integration audit. Fresh results are written to
-`results/local/paper-b-reproduction/`; the dated release is never overwritten.
+This reruns every serialized campaign phase and the separate exact-integration
+audit into `results/local/paper-b-reproduction/`; dated releases are never
+overwritten.
 
-The application phase uses the released UCI Online Retail aggregates in the
-canonical result directory. Raw transactions are not redistributed. To rebuild
-those aggregates, download the UCI Online Retail CSV and run:
+The application phase uses released UCI Online Retail aggregates. Raw
+transactions are not redistributed. To rebuild the aggregates, obtain the UCI
+source and run:
 
 ```bash
 .venv/bin/python scripts/run_pathC_data_calibration.py \
@@ -57,22 +73,18 @@ those aggregates, download the UCI Online Retail CSV and run:
   --output-dir results/local/uci_calibration
 ```
 
-A reproduction of the reported application panel must record
-`public_data_used: True`. The data calibrate aggregate coefficient scales;
-choice menus and elasticity curves remain modeled.
-
 The external-coefficient phase uses the CC BY 4.0 benchmark archive associated
-with Gersing, Büsing, and Koster (Zenodo DOI `10.5281/zenodo.7419028`). The
-expected archive size is 234,397,168 bytes and its SHA-256 is
+with Gersing, Büsing, and Koster (Zenodo DOI `10.5281/zenodo.7419028`). Its
+expected size is 234,397,168 bytes and SHA-256 is
 `8571b3e545607415a38a39dc506b21bd891b6a22ce252e42a1622a5a5f451818`.
-Place it at `data_cache/RobustKnapsack.zip`; the campaign runner can download it
-when absent. The transformation is a coefficient-provenance stress test, not a
-replication of the source uncertainty model.
+Place it at `data_cache/RobustKnapsack.zip`; the campaign runner can download
+it when absent. The released transformation is a coefficient-provenance stress
+test, not a replication of the archive's objective-uncertainty model.
 
-## Interpretation
+## Interpretation boundary
 
-The release supports the algebraic identities, certified multiplier search,
-LP-family bounds, comparator dominance checks, and paired runtimes reported by
-the accompanying manuscript. Timing results are instance-level observations,
-not universal solver-performance claims. The exact audit checks objective and
-gap accounting separately from the LP-bound timing study.
+The release supports the prefix–suffix identities, certified multiplier
+search, interval bounds, comparator checks, and paired runtimes reported by the
+v2 manuscript. Timing results are instance-level observations, not universal
+performance claims. The resource-uncertainty implementation does not establish
+native objective-uncertainty runtime performance.
