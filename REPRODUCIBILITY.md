@@ -32,8 +32,10 @@ The verifier:
 4. checks protocol digests, environment records, thread controls, and public
    calibration aggregates;
 5. checks the v2 derived-release manifest;
-6. recomputes its 122-row post-hoc statistics from the frozen base CSVs; and
-7. rejects tracked manuscript, build, or raw-data artifacts.
+6. verifies the separately hashed release-layer, UCI-source, and computational
+   development provenance records;
+7. recomputes the 122-row post-hoc statistics from the frozen base CSVs; and
+8. rejects tracked manuscript, build, or raw-data artifacts.
 
 The check does not need manuscript source, publication metadata, LaTeX, or raw
 UCI transactions.
@@ -61,17 +63,41 @@ This reruns every serialized campaign phase and the separate exact-integration
 audit into `results/local/paper-b-reproduction/`; dated releases are never
 overwritten.
 
-The application phase uses released UCI Online Retail aggregates. Raw
-transactions are not redistributed. To rebuild the aggregates, obtain the UCI
-source and run:
+The application phase uses released aggregates from Daqing Chen's UCI Online
+Retail dataset (UCI id 352, DOI `10.24432/C5BW33`, CC BY 4.0). Raw transactions
+are not redistributed. The following deterministic route downloads the
+official UCI archive, verifies the exact bytes used for this reconstruction,
+extracts the workbook, and rebuilds the aggregates:
 
 ```bash
-.venv/bin/python scripts/run_pathC_data_calibration.py \
-  --source uci_online_retail \
-  --max-rows 200000 \
-  --cache-dir data_cache/pathC_uci \
-  --output-dir results/local/uci_calibration
+mkdir -p data_cache/pathC_uci
+curl -L --fail \
+  'https://archive.ics.uci.edu/static/public/352/online%2Bretail.zip' \
+  -o data_cache/pathC_uci/online-retail.zip
+echo 'f5385cbb54bbebf7196389109c6b0621faab0c304e3702548165e71c84aede8b  data_cache/pathC_uci/online-retail.zip' \
+  | shasum -a 256 -c -
+unzip -p data_cache/pathC_uci/online-retail.zip 'Online Retail.xlsx' \
+  > 'data_cache/pathC_uci/Online Retail.xlsx'
+echo '43465a06f2ccf7c8b5bd2892bc7defb52f97487934fe93b16ae4c3936424676d  data_cache/pathC_uci/Online Retail.xlsx' \
+  | shasum -a 256 -c -
+make reconstruct-uci PYTHON=.venv/bin/python
 ```
+
+The verified archive is 23,715,478 bytes; its `Online Retail.xlsx` member is
+23,715,344 bytes. The standard-library streaming importer reads the first
+200,000 data rows, retains positive quantities and prices, and applies the
+eight-observation SKU threshold. It reproduces the frozen SKU and segment CSVs
+byte for byte (SHA-256 `fddf028c...b1d30a` and `1ba04343...0b7f6`,
+respectively). Fresh `calibration_config.json` and `data_source_report.txt`
+files record the resolved raw path, input format, byte count, observed hash,
+expected hash, and verification status.
+
+The August frozen campaign itself recorded only the aggregate hashes, not the
+raw workbook hash. The pinned workbook was retrieved and checked during the v2
+provenance repair; this closes the reconstruction path but does not
+retroactively claim that the original campaign logged information it did not.
+The current source and release-layer record is
+`provenance/RELEASE_PROVENANCE.json`.
 
 The external-coefficient phase uses the CC BY 4.0 benchmark archive associated
 with Gersing, Büsing, and Koster (Zenodo DOI `10.5281/zenodo.7419028`). Its
@@ -88,3 +114,11 @@ search, interval bounds, comparator checks, and paired runtimes reported by the
 v2 manuscript. Timing results are instance-level observations, not universal
 performance claims. The resource-uncertainty implementation does not establish
 native objective-uncertainty runtime performance.
+
+The final 2.37-fold primary timing result is development evidence. Earlier R2
+and R3 failed performance audits—including a same-design 1.79-fold run—guided
+algorithm-preserving implementation improvements before the final complete
+rerun. The fixed final protocol and all retained negative panels remain
+verifiable, but this is not described as an external preregistration or an
+untouched confirmation experiment. The full concise chronology is in
+`provenance/DEVELOPMENT_HISTORY.md`.

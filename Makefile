@@ -4,8 +4,11 @@ V2_ANALYSIS_DIR ?= results/release/2026-08-28-paper-b-v2-analysis
 LOCAL_DIR ?= results/local/paper-b-reproduction
 CALIBRATION_DIR ?= $(RELEASE_DIR)/uci_calibration
 EXTERNAL_ARCHIVE ?= data_cache/RobustKnapsack.zip
+UCI_XLSX ?= data_cache/pathC_uci/Online Retail.xlsx
+UCI_OUTPUT ?= results/local/uci_calibration
+UCI_XLSX_SHA256 := 43465a06f2ccf7c8b5bd2892bc7defb52f97487934fe93b16ae4c3936424676d
 
-.PHONY: install test verify derive-v2 reproduce exact-audit clean
+.PHONY: install test verify derive-v2 reconstruct-uci reproduce exact-audit clean
 
 install:
 	uv sync --frozen --extra experiments --extra validation --extra dev
@@ -28,6 +31,16 @@ derive-v2:
 		--output-dir results/local/v2-analysis
 	$(PYTHON) scripts/plot_common_hinge_mechanism.py \
 		--output-dir results/local/v2-analysis
+
+reconstruct-uci:
+	$(PYTHON) scripts/run_pathC_data_calibration.py \
+		--source uci_online_retail \
+		--input-file "$(UCI_XLSX)" \
+		--expected-sha256 $(UCI_XLSX_SHA256) \
+		--max-rows 200000 \
+		--min-sku-observations 8 \
+		--cache-dir data_cache/pathC_uci \
+		--output-dir $(UCI_OUTPUT)
 
 reproduce: test
 	env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \

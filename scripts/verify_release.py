@@ -17,6 +17,7 @@ DEFAULT_RELEASE = ROOT / "results" / "release" / "2026-08-09-paper-b-final-r5"
 DEFAULT_V2_ANALYSIS = (
     ROOT / "results" / "release" / "2026-08-28-paper-b-v2-analysis"
 )
+DEFAULT_PROVENANCE = ROOT / "provenance"
 FORBIDDEN_SUFFIXES = {
     ".aux",
     ".bbl",
@@ -174,6 +175,82 @@ def verify_v2_analysis(base_release: Path, analysis_release: Path) -> int:
     return len(rows)
 
 
+def verify_current_provenance(provenance: Path) -> int:
+    manifest = verify_manifest(provenance)
+    record = json.loads(
+        (provenance / "RELEASE_PROVENANCE.json").read_text(encoding="utf-8")
+    )
+    history = (provenance / "DEVELOPMENT_HISTORY.md").read_text(encoding="utf-8")
+
+    public_release = record["current_public_release"]
+    require(public_release["git_tag"] == "v2.0.1", "current public tag changed")
+
+    layers = record["release_layers"]
+    base = layers["immutable_base_evidence_code"]
+    require(base["git_tag"] == "v1.0.0", "base evidence tag changed")
+    require(
+        base["git_commit"] == "ba52f78994fa890feb8873e2467044d39d3dbb85",
+        "base evidence commit changed",
+    )
+    current = layers["paper_aligned_v2_snapshot"]
+    require(current["git_tag"] == "v2.0.0", "paper-aligned v2 tag changed")
+    require(
+        current["git_commit"] == "acd9e8c96a9f62572bae67576f2b751b4f795c3f",
+        "paper-aligned v2 commit changed",
+    )
+
+    for layer, manifest_key, digest_key in (
+        (base, "evidence_manifest", "evidence_manifest_sha256"),
+        (current, "derived_evidence_manifest", "derived_evidence_manifest_sha256"),
+    ):
+        manifest_path = ROOT / layer[manifest_key]
+        require(manifest_path.is_file(), f"missing recorded manifest {manifest_path}")
+        require(
+            sha256(manifest_path) == layer[digest_key],
+            f"recorded manifest hash mismatch for {manifest_path}",
+        )
+
+    development = record["development_evidence"]
+    require(
+        development["interpretation"]
+        == "development_evidence_not_untouched_confirmation",
+        "final timing evidence is not labeled as development evidence",
+    )
+    for token in ("1.79", "2.37", "R2", "R3", "development evidence"):
+        require(token in history, f"development history omits {token}")
+
+    uci = record["uci_online_retail"]
+    require(int(uci["dataset_id"]) == 352, "unexpected UCI dataset id")
+    require(uci["dataset_doi"] == "10.24432/C5BW33", "unexpected UCI DOI")
+    require(
+        uci["official_zip_sha256"]
+        == "f5385cbb54bbebf7196389109c6b0621faab0c304e3702548165e71c84aede8b",
+        "unexpected official UCI ZIP hash",
+    )
+    require(
+        uci["xlsx_sha256"]
+        == "43465a06f2ccf7c8b5bd2892bc7defb52f97487934fe93b16ae4c3936424676d",
+        "unexpected official UCI XLSX hash",
+    )
+    require(
+        sha256(
+            ROOT
+            / "results/release/2026-08-09-paper-b-final-r5/uci_calibration/segment_calibration.csv"
+        )
+        == uci["frozen_segment_aggregate_sha256"],
+        "frozen UCI segment aggregate provenance mismatch",
+    )
+    require(
+        sha256(
+            ROOT
+            / "results/release/2026-08-09-paper-b-final-r5/uci_calibration/sku_calibration.csv"
+        )
+        == uci["frozen_sku_aggregate_sha256"],
+        "frozen UCI SKU aggregate provenance mismatch",
+    )
+    return len(manifest)
+
+
 def verify_public_tree() -> None:
     tracked = subprocess.check_output(
         ["git", "ls-files", "-z"], cwd=ROOT
@@ -192,14 +269,17 @@ def main() -> None:
     parser.add_argument(
         "--v2-analysis-dir", type=Path, default=DEFAULT_V2_ANALYSIS
     )
+    parser.add_argument("--provenance-dir", type=Path, default=DEFAULT_PROVENANCE)
     args = parser.parse_args()
     release = args.release_dir.resolve()
     analysis_release = args.v2_analysis_dir.resolve()
+    provenance = args.provenance_dir.resolve()
     require(release.is_dir(), f"missing release directory {release}")
     require(
         analysis_release.is_dir(),
         f"missing v2 analysis release directory {analysis_release}",
     )
+    require(provenance.is_dir(), f"missing provenance directory {provenance}")
 
     manifest = verify_manifest(release)
 
@@ -281,12 +361,14 @@ def main() -> None:
     )
 
     v2_rows = verify_v2_analysis(release, analysis_release)
+    provenance_files = verify_current_provenance(provenance)
     verify_public_tree()
 
     print(
         "RELEASE VERIFY: PASS "
         f"({len(manifest)} evidence files, {sum(expected_counts.values())} campaign rows, "
-        f"{len(exact_rows)} exact-integration rows, {v2_rows} v2 analysis rows)"
+        f"{len(exact_rows)} exact-integration rows, {v2_rows} v2 analysis rows, "
+        f"{provenance_files} provenance files)"
     )
 
 

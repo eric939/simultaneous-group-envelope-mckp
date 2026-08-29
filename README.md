@@ -4,8 +4,17 @@ This reviewer-facing repository contains the algorithms, tests, experiment
 drivers, and released computational evidence for the current v2 revision of
 *Batched Lagrangian Bounds for Robust Multiple-Choice Knapsack* (the revision
 line of [arXiv:2608.08861](https://arxiv.org/abs/2608.08861)).
-The paper-aligned code and evidence tag is
+The current reproducibility release is
+[`v2.0.1`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.0.1).
+It adds the public development-history record and the hash-pinned UCI
+reconstruction path without changing the frozen evidence or numerical results.
+The underlying paper-aligned code and evidence snapshot remains
 [`v2.0.0`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.0.0).
+The immutable base campaign was published first at
+[`v1.0.0`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v1.0.0)
+(`ba52f78`); v2.0.0 (`acd9e8c`) adds the paper-aligned derived analysis and
+presentation layer without rewriting that evidence. The machine-readable
+mapping is in `provenance/RELEASE_PROVENANCE.json`.
 
 The manuscript, submission packages, publication notes, literature audits,
 and historical paper sources are intentionally not part of this software
@@ -37,6 +46,8 @@ repository.
   environments, calibration aggregates, and SHA-256 manifest.
 - `results/release/2026-08-28-paper-b-v2-analysis/`: the compact v2 derived
   release containing CSV/JSON analysis, PNG visualizations, and a manifest.
+- `provenance/`: the separately hashed current-layer release map, UCI source
+  hashes, and the disclosed R2/R3-to-final computational development history.
 
 The v2 manuscript also proves that the same common-hinge algebra covers
 standard objective-coefficient budget uncertainty. This repository does not
@@ -50,10 +61,10 @@ uv sync --frozen --extra experiments --extra validation --extra dev
 make verify PYTHON=.venv/bin/python
 ```
 
-This runs the complete test suite, verifies both release manifests, checks all
-scientific gates, recomputes the v2 descriptive statistics, and enforces the
-public-tree hygiene boundary. It requires neither manuscript source nor a TeX
-installation.
+This runs the complete test suite, verifies both immutable evidence manifests
+and the current provenance manifest, checks all scientific gates, recomputes
+the v2 descriptive statistics, and enforces the public-tree hygiene boundary.
+It requires neither manuscript source nor a TeX installation.
 
 To rerun the fixed computational campaign into a new local directory:
 
@@ -67,6 +78,11 @@ To regenerate only the v2 derived CSV, JSON, and PNG outputs:
 make derive-v2 PYTHON=.venv/bin/python
 ```
 
+To rebuild the UCI aggregates after downloading the hash-pinned official
+workbook, run `make reconstruct-uci PYTHON=.venv/bin/python`. Exact download,
+hash, extraction, and comparison commands are in `REPRODUCIBILITY.md`; every
+fresh report records the resolved raw path, byte count, and SHA-256.
+
 Released evidence is immutable; fresh runs are written only below
 `results/local/`. See `REPRODUCIBILITY.md` for provenance and interpretation.
 
@@ -74,5 +90,10 @@ The positive primary timings and the adverse pricing/integer results are all
 retained. The v2 operating-region correlations are explicitly descriptive,
 not causal or confirmatory. No manuscript source, manuscript PDF, submission
 package, or raw third-party dataset is tracked.
+
+The final 2.37-fold primary result is disclosed as development evidence, not
+as an untouched confirmation experiment: earlier R2/R3 failures, including a
+1.79-fold same-design run, informed algorithm-preserving implementation work.
+See `provenance/DEVELOPMENT_HISTORY.md`.
 
 The software is MIT licensed.

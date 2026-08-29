@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "paper": "Batched Lagrangian Bounds for Robust Multiple-Choice Knapsack",
+  "repository": "https://github.com/eric939/simultaneous-group-envelope-mckp",
+  "current_public_release": {
+    "git_tag": "v2.0.1",
+    "role": "Provenance and deterministic UCI-reconstruction patch; frozen evidence and reported numerical results are unchanged"
+  },
+  "release_layers": {
+    "immutable_base_evidence_code": {
+      "role": "Executable and test snapshot that produced and verifies the frozen R4/R5 base evidence",
+      "git_tag": "v1.0.0",
+      "git_commit": "ba52f78994fa890feb8873e2467044d39d3dbb85",
+      "evidence_directory": "results/release/2026-08-09-paper-b-final-r5",
+      "evidence_manifest": "results/release/2026-08-09-paper-b-final-r5/MANIFEST.sha256",
+      "evidence_manifest_sha256": "bd4c1c03840a8f8b0d78b427635893544c87ef6b9938c0ec3a520e31c196fa4c"
+    },
+    "paper_aligned_v2_snapshot": {
+      "role": "Current v2 paper-aligned public code plus the derived, post-hoc operating-region analysis",
+      "git_tag": "v2.0.0",
+      "git_commit": "acd9e8c96a9f62572bae67576f2b751b4f795c3f",
+      "derived_evidence_directory": "results/release/2026-08-28-paper-b-v2-analysis",
+      "derived_evidence_manifest": "results/release/2026-08-28-paper-b-v2-analysis/MANIFEST.sha256",
+      "derived_evidence_manifest_sha256": "3ae384ada5e3762789fccef58d31afd288ce2bdae9eb5f2619b5e6e6151fda9f"
+    }
+  },
+  "development_evidence": {
+    "record": "provenance/DEVELOPMENT_HISTORY.md",
+    "final_primary_geometric_mean_speedup": 2.37,
+    "interpretation": "development_evidence_not_untouched_confirmation",
+    "earlier_same_design_geometric_mean_speedup": 1.79,
+    "failed_audit_campaigns_disclosed": [
+      "R2",
+      "R3"
+    ]
+  },
+  "uci_online_retail": {
+    "dataset_id": 352,
+    "dataset_doi": "10.24432/C5BW33",
+    "dataset_page": "https://archive.ics.uci.edu/dataset/352/online%2Bretail",
+    "license": "CC BY 4.0",
+    "official_download_url": "https://archive.ics.uci.edu/static/public/352/online%2Bretail.zip",
+    "official_zip_bytes": 23715478,
+    "official_zip_sha256": "f5385cbb54bbebf7196389109c6b0621faab0c304e3702548165e71c84aede8b",
+    "xlsx_member": "Online Retail.xlsx",
+    "xlsx_bytes": 23715344,
+    "xlsx_sha256": "43465a06f2ccf7c8b5bd2892bc7defb52f97487934fe93b16ae4c3936424676d",
+    "frozen_segment_aggregate_sha256": "1ba04343eb853439f184a55dbd6ac3dbeac6f6438ef1b9dcc8b0173e3a40b7f6",
+    "frozen_sku_aggregate_sha256": "fddf028c8daf89f3812cd9242053229802622e9c6b4ce9c618cf74b722b1d30a",
+    "historical_boundary": "The frozen 2026-08-09 campaign did not record a raw-input hash. The pinned official XLSX was retrieved and verified during the v2 provenance repair and reproduces both frozen aggregate files byte for byte.",
+    "reconstruction_command": "make reconstruct-uci PYTHON=.venv/bin/python"
+  }
+}
