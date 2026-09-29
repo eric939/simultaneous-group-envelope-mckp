@@ -329,13 +329,30 @@ class CompressedThetaIntervalOracle:
         self.capacities, capacity_errors = self._envelope_values_with_error(
             1.0, zero_values
         )
-        lower = self.capacities - capacity_errors
-        upper = self.capacities + capacity_errors
+        with np.errstate(over="ignore", invalid="ignore"):
+            lower = self.capacities - capacity_errors
+            upper = self.capacities + capacity_errors
         self.feasible_thresholds = lower >= 0.0
-        ambiguous = np.flatnonzero((lower < 0.0) & (upper >= 0.0))
+        # A representable objective total does not imply representable
+        # resource intermediates. Infinities and NaNs must receive an exact
+        # sign check; otherwise an overflowed feasible threshold can vanish
+        # from the mask and produce a false certified -inf bound.
+        needs_exact = (
+            ~np.isfinite(self.capacities)
+            | ~np.isfinite(capacity_errors)
+            | ~np.isfinite(lower)
+            | ~np.isfinite(upper)
+            | ((lower < 0.0) & (upper >= 0.0))
+        )
+        ambiguous = np.flatnonzero(needs_exact)
         for index in ambiguous:
             exact_capacity = self._exact_capacity(int(index))
-            self.capacities[int(index)] = float(exact_capacity)
+            try:
+                self.capacities[int(index)] = float(exact_capacity)
+            except OverflowError:
+                self.capacities[int(index)] = (
+                    math.inf if exact_capacity > 0 else -math.inf
+                )
             self.feasible_thresholds[int(index)] = exact_capacity >= 0
         self.preprocessing_seconds = time.perf_counter() - start
         self.profile = OracleProfile(

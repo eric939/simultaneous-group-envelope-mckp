@@ -268,6 +268,24 @@ def test_negative_overflowing_aggregate_objective_is_rejected() -> None:
         CompressedThetaIntervalOracle(instance)
 
 
+def test_capacity_overflow_uses_exact_feasibility_mask() -> None:
+    # The objective total is representable, but two large resource margins
+    # overflow the floating capacity calculation. The old mask silently
+    # classified this feasible singleton threshold as infeasible.
+    instance = PricingInstance(
+        items=[
+            [Option(1.0, 1e308, 0.0)],
+            [Option(1.0, 1e308, 0.0)],
+        ],
+        gamma=1,
+    )
+    oracle = CompressedThetaIntervalOracle(instance)
+    assert oracle.feasible_thresholds.tolist() == [True]
+    result = oracle.bound(0, 0)
+    assert result.certified
+    assert result.lower_bound == result.upper_bound == 2.0
+
+
 def test_certified_bound_encloses_cancelling_group_envelope() -> None:
     instance = PricingInstance(
         items=[
