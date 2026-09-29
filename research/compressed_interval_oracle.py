@@ -50,10 +50,15 @@ def _half_ulp(value: float) -> float:
 
 
 def _half_ulp_array(values: np.ndarray) -> np.ndarray:
-    """Vectorized half-ULP radii for finite binary64 arrays."""
+    """Vectorized half-ULP radii, with infinite radius for nonfinite inputs."""
 
     magnitudes = np.abs(np.asarray(values, dtype=float))
-    return 0.5 * (np.nextafter(magnitudes, math.inf) - magnitudes)
+    radii = np.full_like(magnitudes, math.inf)
+    finite = np.isfinite(magnitudes)
+    radii[finite] = 0.5 * (
+        np.nextafter(magnitudes[finite], math.inf) - magnitudes[finite]
+    )
+    return radii
 
 
 def _binary_denominator_exponent(value: float) -> int:
@@ -422,22 +427,23 @@ class CompressedThetaIntervalOracle:
                 np.nextafter(unit_roundoff / (1.0 - unit_roundoff), math.inf)
             )
             minimum_subnormal = float(np.nextafter(0.0, 1.0))
-            saturated_errors = np.where(
-                valid,
-                rounding_factor
-                * (np.abs(margin_products) + np.abs(finite_saturated))
-                + 2.0 * minimum_subnormal,
-                0.0,
-            )
-            robust_errors = self._padded_robust_errors
-            active_errors = np.where(
-                valid,
-                abs(lam) * robust_errors
-                + rounding_factor
-                * (np.abs(active_products) + np.abs(finite_active))
-                + 2.0 * minimum_subnormal,
-                0.0,
-            )
+            with np.errstate(over="ignore", invalid="ignore"):
+                saturated_errors = np.where(
+                    valid,
+                    rounding_factor
+                    * (np.abs(margin_products) + np.abs(finite_saturated))
+                    + 2.0 * minimum_subnormal,
+                    0.0,
+                )
+                robust_errors = self._padded_robust_errors
+                active_errors = np.where(
+                    valid,
+                    abs(lam) * robust_errors
+                    + rounding_factor
+                    * (np.abs(active_products) + np.abs(finite_active))
+                    + 2.0 * minimum_subnormal,
+                    0.0,
+                )
             group_errors = np.max(
                 np.maximum(saturated_errors, active_errors), axis=1
             )
