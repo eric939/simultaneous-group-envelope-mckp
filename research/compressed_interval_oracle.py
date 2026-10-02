@@ -64,6 +64,19 @@ def _half_ulp_array(values: np.ndarray) -> np.ndarray:
     return radii
 
 
+def _outward_accumulated_radius(values: np.ndarray) -> np.ndarray:
+    """Round outward after summing at most eight nonnegative binary64 terms.
+
+    A final nextafter alone need not cover seven earlier addition errors.
+    The exact 1 + 8*epsilon factor compensates their gamma bound; nextafter
+    covers the inflation multiplication, including gradual underflow.
+    """
+
+    inflation = 1.0 + 8.0 * sys.float_info.epsilon
+    with np.errstate(over="ignore", invalid="ignore"):
+        return np.nextafter(np.asarray(values, dtype=float) * inflation, math.inf)
+
+
 def _outward_gap(upper: float, lower: float) -> float:
     """Bound the exact dyadic width of finite reported endpoints outward."""
 
@@ -628,7 +641,7 @@ class CompressedThetaIntervalOracle:
             + _half_ulp_array(estimates)
             + 4.0 * epsilon * arithmetic_scale
         )
-        errors = np.nextafter(errors, math.inf)
+        errors = _outward_accumulated_radius(errors)
         return estimates, errors
 
     def _envelope_values(

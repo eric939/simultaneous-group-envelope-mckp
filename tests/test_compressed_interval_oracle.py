@@ -13,6 +13,7 @@ from research.compressed_interval_oracle import (
     CompressedThetaIntervalOracle,
     _half_ulp,
     _half_ulp_array,
+    _outward_accumulated_radius,
     _outward_gap,
 )
 from research.interval_baselines import ThetaIntervalOracle, build_small_instance
@@ -387,6 +388,38 @@ def test_scalar_and_vector_rounding_radii_cover_half_spacing_exactly() -> None:
     for value in [math.inf, -math.inf, math.nan]:
         assert _half_ulp(value) == math.inf
     assert np.isposinf(_half_ulp_array(np.asarray([math.inf, -math.inf, math.nan]))).all()
+
+
+@pytest.mark.parametrize(
+    "terms",
+    [
+        [1.0, *([2.0**-54] * 7)],
+        [2.0**500, *([2.0**446] * 7)],
+        [2.0**-500, *([2.0**-554] * 7)],
+        [math.ulp(0.0)] * 8,
+        [0.0] * 8,
+        [math.nextafter(2.0, 0.0), *([2.0**-54] * 7)],
+        [float(np.finfo(float).max), *([0.0] * 7)],
+    ],
+)
+def test_accumulated_radius_encloses_exact_component_sum(terms: list[float]) -> None:
+    exact = sum((Fraction.from_float(term) for term in terms), Fraction(0))
+    accumulated = np.asarray([terms[0]])
+    for term in terms[1:]:
+        accumulated = accumulated + term
+    outward = float(_outward_accumulated_radius(accumulated)[0])
+    assert outward == math.inf or Fraction.from_float(outward) >= exact
+
+
+def test_single_nextafter_does_not_enclose_eight_component_sum() -> None:
+    terms = [1.0, *([2.0**-54] * 7)]
+    exact = sum((Fraction.from_float(term) for term in terms), Fraction(0))
+    accumulated = terms[0]
+    for term in terms[1:]:
+        accumulated = accumulated + term
+    assert Fraction.from_float(math.nextafter(accumulated, math.inf)) < exact
+    corrected = float(_outward_accumulated_radius(np.asarray([accumulated]))[0])
+    assert Fraction.from_float(corrected) >= exact
 
 
 @pytest.mark.parametrize(
