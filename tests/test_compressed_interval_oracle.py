@@ -422,6 +422,39 @@ def test_single_nextafter_does_not_enclose_eight_component_sum() -> None:
     assert Fraction.from_float(corrected) >= exact
 
 
+@pytest.mark.parametrize("groups", [7, 10, 20])
+def test_ragged_group_radius_covers_subnormal_coefficient_errors(
+    groups: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    smallest = math.ulp(0.0)
+    minimum_normal = 2.0**-1022
+    value = 3*minimum_normal-4*smallest
+    margin, deviation, multiplier = 2.0**52+3, 0.5, 5*smallest
+    instance = PricingInstance(items=[
+        [Option(0.0,0.0,0.0) for _ in range(100)],
+        *[[Option(value,margin,deviation)] for _ in range(groups)],
+    ], gamma=0)
+    oracle = CompressedThetaIntervalOracle(instance)
+    assert not oracle._use_padded_fast_path
+    recorded: list[float] = []
+    original_fsum = math.fsum
+
+    def record_fsum(terms: object) -> float:
+        result = original_fsum(terms)
+        recorded.append(result)
+        return result
+
+    monkeypatch.setattr("research.compressed_interval_oracle.math.fsum", record_fsum)
+    estimates, _radii = oracle._envelope_values_with_error(multiplier)
+    assert len(recorded) == 1
+    assert estimates[0] == groups*8*minimum_normal
+    exact = groups*(Fraction.from_float(value)+Fraction.from_float(multiplier)*
+                    (Fraction.from_float(margin)-Fraction.from_float(deviation)))
+    coefficient_error = abs(Fraction.from_float(float(estimates[0]))-exact)
+    group_radius = Fraction.from_float(math.nextafter(recorded[0], math.inf))
+    assert coefficient_error <= group_radius
+
+
 @pytest.mark.parametrize(
     ("upper", "lower"),
     [

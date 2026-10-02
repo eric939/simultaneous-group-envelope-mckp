@@ -505,8 +505,13 @@ class CompressedThetaIntervalOracle:
                     + _half_ulp_array(saturated_scores)
                 )
                 robust_errors = _half_ulp_array(robust_margins)
+                # Scaling a half-ULP radius can round downward, including
+                # below the subnormal grid. Cover that multiplication outward.
+                scaled_robust_errors = np.nextafter(
+                    abs(lam) * robust_errors, math.inf
+                )
                 active_errors = (
-                    abs(lam) * robust_errors
+                    scaled_robust_errors
                     + _half_ulp_array(active_products)
                     + _half_ulp_array(active_scores)
                 )
