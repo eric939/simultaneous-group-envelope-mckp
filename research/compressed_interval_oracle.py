@@ -77,6 +77,29 @@ def _outward_accumulated_radius(values: np.ndarray) -> np.ndarray:
         return np.nextafter(np.asarray(values, dtype=float) * inflation, math.inf)
 
 
+def _crossover_values_with_error(
+    constants: np.ndarray, line_intercepts: np.ndarray, multiplier: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Bound piece-selection loss from the actual subtraction and division.
+
+    The residual is at most the subtraction radius plus the multiplier times
+    the division radius. Round both the radius scaling and addition outward.
+    Nonfinite intermediates produce an infinite radius for exact fallback.
+    """
+
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        differences = constants - line_intercepts
+        crossovers = differences / multiplier
+        scaled_division_radius = np.nextafter(
+            abs(multiplier) * _half_ulp_array(crossovers), math.inf
+        )
+        radii = np.nextafter(
+            _half_ulp_array(differences) + scaled_division_radius, math.inf
+        )
+        radii = np.where(np.isfinite(radii), radii, math.inf)
+    return crossovers, radii
+
+
 def _outward_gap(upper: float, lower: float) -> float:
     """Bound the exact dyadic width of finite reported endpoints outward."""
 
@@ -519,8 +542,6 @@ class CompressedThetaIntervalOracle:
                 group_errors.append(
                     float(np.max(candidate_errors, initial=0.0))
                 )
-        group_error = float(np.nextafter(math.fsum(group_errors), math.inf))
-
         constants = np.full(len(self._segment_lo), -np.inf, dtype=float)
         has_constant = self._segment_last_saturated >= 0
         if self._use_padded_fast_path:
@@ -551,11 +572,24 @@ class CompressedThetaIntervalOracle:
         finite_line = np.isfinite(line_intercepts)
         first_line = self._segment_lo.copy()
         both = finite_constant & finite_line
-        first_line[both] = np.searchsorted(
-            self.thetas,
-            (constants[both] - line_intercepts[both]) / lam,
-            side="left",
-        )
+        if np.any(both):
+            crossovers, crossover_errors = _crossover_values_with_error(
+                constants[both], line_intercepts[both], lam
+            )
+            first_line[both] = np.searchsorted(
+                self.thetas, crossovers, side="left"
+            )
+            # A group contributes one segment at any threshold. Its largest
+            # segment loss bounds the selected piece throughout the grid.
+            group_crossover_errors = np.zeros(self.instance.n_items, dtype=float)
+            np.maximum.at(
+                group_crossover_errors, self._segment_group[both], crossover_errors
+            )
+            with np.errstate(over="ignore", invalid="ignore"):
+                group_errors = np.nextafter(
+                    np.asarray(group_errors) + group_crossover_errors, math.inf
+                )
+        group_error = float(np.nextafter(math.fsum(group_errors), math.inf))
         first_line[finite_constant & ~finite_line] = self._segment_hi[
             finite_constant & ~finite_line
         ] + 1

@@ -11,12 +11,59 @@ from robust_mckp import Option, PricingInstance
 from research.benchmark_instances import build_benchmark_instance
 from research.compressed_interval_oracle import (
     CompressedThetaIntervalOracle,
+    _crossover_values_with_error,
     _half_ulp,
     _half_ulp_array,
     _outward_accumulated_radius,
     _outward_gap,
 )
 from research.interval_baselines import ThetaIntervalOracle, build_small_instance
+
+
+@pytest.mark.parametrize(
+    ("constant", "intercept", "multiplier"),
+    [
+        (1.0, -(2**-54), 3.0),
+        (-1.0, 2**-53, 7.0),
+        (math.nextafter(1.0, math.inf), 0.0, 3.0),
+        (1.0, math.nextafter(1.0, math.inf), 0.75),
+        (math.ulp(0.0), 0.0, 0.5),
+        (-math.ulp(0.0), 0.0, 0.75),
+        (2 * math.ulp(0.0), math.ulp(0.0), 3.0),
+        (0.0, 0.0, math.ulp(0.0)),
+        (2**-1022, math.ulp(0.0), 5.0),
+        (2**500, -(2**499), 2**400),
+        (2**-500, -(2**-499), 2**-400),
+        (0.5, -0.25, 0.1),
+    ],
+)
+def test_computed_crossover_radius_covers_exact_piece_loss(
+    constant: float, intercept: float, multiplier: float
+) -> None:
+    crossovers, radii = _crossover_values_with_error(
+        np.asarray([constant]), np.asarray([intercept]), multiplier
+    )
+    cross, radius = float(crossovers[0]), float(radii[0])
+    assert math.isfinite(cross) and math.isfinite(radius)
+    c, a, lam, x, r = map(Fraction.from_float, [constant, intercept, multiplier, cross, radius])
+    assert abs(lam * x - (c - a)) <= r
+    for theta in [math.nextafter(cross, -math.inf), cross, math.nextafter(cross, math.inf)]:
+        t = Fraction.from_float(theta)
+        selected = c if t < x else a + lam * t
+        assert 0 <= max(c, a + lam * t) - selected <= r
+
+
+@pytest.mark.parametrize(
+    ("constant", "intercept", "multiplier"),
+    [(1e308, -1e308, 1.0), (1.0, 0.0, math.ulp(0.0)), (math.nan, 0.0, 1.0)],
+)
+def test_nonfinite_crossover_has_infinite_error_radius(
+    constant: float, intercept: float, multiplier: float
+) -> None:
+    _crossovers, radii = _crossover_values_with_error(
+        np.asarray([constant]), np.asarray([intercept]), multiplier
+    )
+    assert radii[0] == math.inf
 
 
 @pytest.mark.parametrize(
