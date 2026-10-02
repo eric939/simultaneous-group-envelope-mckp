@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import hashlib
+import math
+from fractions import Fraction
 
 import numpy as np
 import pytest
 
 from robust_mckp import Option, PricingInstance
 from research.benchmark_instances import build_benchmark_instance
-from research.compressed_interval_oracle import CompressedThetaIntervalOracle
+from research.compressed_interval_oracle import (
+    CompressedThetaIntervalOracle,
+    _half_ulp,
+    _half_ulp_array,
+    _outward_gap,
+)
 from research.interval_baselines import ThetaIntervalOracle, build_small_instance
 
 
@@ -341,3 +348,90 @@ def test_highly_unequal_menus_use_ragged_certified_path() -> None:
         assert actual == pytest.approx(expected, abs=2e-10, rel=2e-12)
     result = compressed.bound(0, len(compressed.thetas) - 1)
     assert result.certified
+
+
+@pytest.mark.parametrize("groups", [10, 100])
+@pytest.mark.parametrize("sign", [-1, 1])
+@pytest.mark.parametrize("multiplier", [0.25, 0.5, 0.75])
+def test_ragged_subnormal_envelope_encloses_exact_dyadic_value(
+    groups: int, sign: int, multiplier: float
+) -> None:
+    smallest = math.ulp(0.0)
+    instance = PricingInstance(
+        items=[
+            [Option(0.0, 0.0, 0.0) for _ in range(100)],
+            *[[Option(0.0, sign * smallest, 0.0)] for _ in range(groups)],
+        ],
+        gamma=0,
+    )
+    oracle = CompressedThetaIntervalOracle(instance)
+    assert not oracle._use_padded_fast_path
+    estimates, radii = oracle._envelope_values_with_error(multiplier)
+    exact = groups * Fraction.from_float(sign * smallest) * Fraction.from_float(
+        multiplier
+    )
+    assert len(estimates) == 1
+    lower = Fraction.from_float(float(estimates[0] - radii[0]))
+    upper = Fraction.from_float(float(estimates[0] + radii[0]))
+    assert lower <= exact <= upper
+
+
+def test_scalar_and_vector_rounding_radii_cover_half_spacing_exactly() -> None:
+    smallest = math.ulp(0.0)
+    values = [0.0, smallest, -smallest, 3 * smallest, 2**-1022, 1.0, -1.0]
+    vector = _half_ulp_array(np.asarray(values))
+    for value, radius in zip(values, vector):
+        exact_half_spacing = Fraction.from_float(math.ulp(value)) / 2
+        assert Fraction.from_float(_half_ulp(value)) >= exact_half_spacing
+        assert Fraction.from_float(float(radius)) >= exact_half_spacing
+    for value in [math.inf, -math.inf, math.nan]:
+        assert _half_ulp(value) == math.inf
+    assert np.isposinf(_half_ulp_array(np.asarray([math.inf, -math.inf, math.nan]))).all()
+
+
+@pytest.mark.parametrize(
+    ("upper", "lower"),
+    [
+        (1.0, -(2**-54)),
+        (math.ulp(0.0), 0.0),
+        (math.ulp(0.0), -math.ulp(0.0)),
+        (2**100, -(2**-100)),
+        (-1.0, -math.nextafter(1.0, math.inf)),
+        (1.0, 1.0),
+        (0.0, -0.0),
+        (float(np.finfo(float).max), -float(np.finfo(float).max)),
+    ],
+)
+def test_reported_gap_bounds_exact_endpoint_width(upper: float, lower: float) -> None:
+    gap = _outward_gap(upper, lower)
+    exact_width = Fraction.from_float(upper) - Fraction.from_float(lower)
+    assert math.isinf(gap) or Fraction.from_float(gap) >= exact_width
+
+
+def test_outward_gap_rejects_reversed_finite_endpoints() -> None:
+    with pytest.raises(ValueError, match="upper endpoint is below"):
+        _outward_gap(0.0, 1.0)
+
+
+@pytest.mark.parametrize("upper,lower", [(math.inf, 0.0), (0.0, -math.inf)])
+def test_nonfinite_gap_is_conservative(upper: float, lower: float) -> None:
+    assert _outward_gap(upper, lower) == math.inf
+
+
+@pytest.mark.parametrize("mode", ["singleton", "zero_value_competitor", "multiple_thresholds"])
+def test_returned_bound_gap_encloses_exact_reported_endpoint_width(mode: str) -> None:
+    if mode == "singleton":
+        instance = PricingInstance(items=[[Option(0.1, 0.0, 0.0)]], gamma=0)
+    elif mode == "zero_value_competitor":
+        instance = PricingInstance(
+            items=[[Option(0.1, 0.0, 0.0), Option(0.0, 1.0, 1.0)]], gamma=0
+        )
+    else:
+        instance = build_small_instance(seed=515, n=7, m=5, gamma=3)
+    oracle = CompressedThetaIntervalOracle(instance)
+    result = oracle.bound(0, len(oracle.thetas) - 1)
+    assert math.isfinite(result.upper_bound) and math.isfinite(result.lower_bound)
+    exact_width = Fraction.from_float(result.upper_bound) - Fraction.from_float(
+        result.lower_bound
+    )
+    assert Fraction.from_float(result.optimality_gap) >= exact_width

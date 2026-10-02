@@ -46,7 +46,9 @@ TOL = 1e-9
 def _half_ulp(value: float) -> float:
     if not math.isfinite(value):
         return math.inf
-    return 0.5 * math.ulp(float(value))
+    # Half the smallest subnormal spacing is not representable. Rounding the
+    # radius to zero loses a real underflow error; use an outward floor.
+    return max(math.ulp(0.0), 0.5 * math.ulp(float(value)))
 
 
 def _half_ulp_array(values: np.ndarray) -> np.ndarray:
@@ -55,10 +57,23 @@ def _half_ulp_array(values: np.ndarray) -> np.ndarray:
     magnitudes = np.abs(np.asarray(values, dtype=float))
     radii = np.full_like(magnitudes, math.inf)
     finite = np.isfinite(magnitudes)
-    radii[finite] = 0.5 * (
-        np.nextafter(magnitudes[finite], math.inf) - magnitudes[finite]
+    radii[finite] = np.maximum(
+        math.ulp(0.0),
+        0.5 * (np.nextafter(magnitudes[finite], math.inf) - magnitudes[finite]),
     )
     return radii
+
+
+def _outward_gap(upper: float, lower: float) -> float:
+    """Bound the exact dyadic width of finite reported endpoints outward."""
+
+    if not (math.isfinite(upper) and math.isfinite(lower)):
+        return math.inf
+    if upper < lower:
+        raise ValueError("upper endpoint is below lower endpoint")
+    if upper == lower:
+        return 0.0
+    return math.nextafter(upper - lower, math.inf)
 
 
 def _binary_denominator_exponent(value: float) -> int:
@@ -1009,7 +1024,7 @@ class CompressedThetaIntervalOracle:
                 1,
                 time.perf_counter() - start,
                 lower_bound=lower,
-                optimality_gap=float(upper - lower),
+                optimality_gap=_outward_gap(upper, lower),
                 certified=True,
             )
 
@@ -1043,7 +1058,7 @@ class CompressedThetaIntervalOracle:
                 len(evaluations),
                 time.perf_counter() - start,
                 lower_bound=lower,
-                optimality_gap=float(padded - lower),
+                optimality_gap=_outward_gap(padded, lower),
                 certified=True,
             )
 
@@ -1120,7 +1135,7 @@ class CompressedThetaIntervalOracle:
             len(evaluations),
             time.perf_counter() - start,
             lower_bound=lower,
-            optimality_gap=float(padded - lower),
+            optimality_gap=_outward_gap(padded, lower),
             certified=True,
         )
 
