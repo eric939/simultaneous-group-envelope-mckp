@@ -911,6 +911,17 @@ class CompressedThetaIntervalOracle:
         """Legacy fixed-grid bound retained solely for kernel ablations."""
 
         start = time.perf_counter()
+        feasible = self.feasible_thresholds[lo : hi + 1]
+        if not bool(np.any(feasible)):
+            return IntervalBound(
+                float("-inf"),
+                0.0,
+                0,
+                time.perf_counter() - start,
+                lower_bound=float("-inf"),
+                optimality_gap=0.0,
+                certified=True,
+            )
         evaluations = []
         for lambda_value in self.multiplier_grid:
             estimates, errors = self._envelope_values_with_error(float(lambda_value))
@@ -925,14 +936,16 @@ class CompressedThetaIntervalOracle:
             evaluations.append((float(lambda_value), value))
         finite = [(lam, value) for lam, value in evaluations if math.isfinite(value)]
         if not finite:
+            # A nonempty feasible mask cannot become infeasible because
+            # every numerical upper endpoint overflows or is unresolved.
             return IntervalBound(
-                float("-inf"),
+                math.inf,
                 0.0,
                 len(evaluations),
                 time.perf_counter() - start,
-                lower_bound=float("-inf"),
-                optimality_gap=0.0,
-                certified=True,
+                lower_bound=-math.inf,
+                optimality_gap=math.inf,
+                certified=False,
             )
         best_lambda, best_value = min(finite, key=lambda pair: pair[1])
         return IntervalBound(

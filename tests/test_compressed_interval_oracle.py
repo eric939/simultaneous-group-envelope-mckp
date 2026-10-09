@@ -548,3 +548,33 @@ def test_returned_bound_gap_encloses_exact_reported_endpoint_width(mode: str) ->
         result.lower_bound
     )
     assert Fraction.from_float(result.optimality_gap) >= exact_width
+
+
+@pytest.mark.parametrize("value", [float.fromhex("0x1.fffffffffffffp+1023"),
+                                  -float.fromhex("0x1.fffffffffffffp+1023"), 5.0])
+def test_fixed_grid_nonfinite_endpoints_do_not_imply_infeasibility(value: float) -> None:
+    instance = PricingInstance(items=[[Option(value, 0.0, 0.0)]], gamma=0)
+    with np.errstate(over="ignore", invalid="ignore"):
+        oracle = CompressedThetaIntervalOracle(instance)
+        result = oracle.bound(0, 0, local_search=False)
+    assert bool(oracle.feasible_thresholds[0])
+    assert not math.isnan(result.upper_bound)
+    assert result.upper_bound != -math.inf
+    assert result.upper_bound == math.inf or Fraction.from_float(result.upper_bound) >= Fraction.from_float(value)
+    assert not result.certified
+    if value == float.fromhex("0x1.fffffffffffffp+1023"):
+        assert result.upper_bound == math.inf
+        assert result.lower_bound == -math.inf
+        assert result.optimality_gap == math.inf
+
+
+def test_fixed_grid_empty_feasible_mask_is_infeasible_without_evaluations() -> None:
+    instance = PricingInstance(items=[[Option(1.0, -1.0, 0.0)]], gamma=0)
+    oracle = CompressedThetaIntervalOracle(instance)
+    result = oracle.bound(0, 0, local_search=False)
+    assert not bool(oracle.feasible_thresholds[0])
+    assert result.upper_bound == -math.inf
+    assert result.lower_bound == -math.inf
+    assert result.optimality_gap == 0.0
+    assert result.certified
+    assert result.evaluations == 0
