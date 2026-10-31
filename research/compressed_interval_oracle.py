@@ -41,6 +41,8 @@ from research.interval_baselines import IntervalBound
 
 
 TOL = 1e-9
+# A fixed number of K-cell slope payloads keeps persistent fallback storage linear.
+_EXACT_SLOPE_CACHE_LIMIT = 8
 
 
 def _half_ulp(value: float) -> float:
@@ -741,6 +743,10 @@ class CompressedThetaIntervalOracle:
         if self._use_exact_rectangular_path:
             slopes_matrix = self._exact_slope_matrix_cache.get(index)
             if slopes_matrix is None:
+                if len(self._exact_slope_matrix_cache) >= _EXACT_SLOPE_CACHE_LIMIT:
+                    self._exact_slope_matrix_cache.pop(
+                        next(iter(self._exact_slope_matrix_cache))
+                    )
                 theta = self._exact_theta_integers[index]
                 slopes_matrix = self._exact_margin_matrix - np.maximum(
                     self._exact_deviation_matrix - theta, 0
@@ -768,6 +774,8 @@ class CompressedThetaIntervalOracle:
 
         slopes = self._exact_slope_cache.get(index)
         if slopes is None:
+            if len(self._exact_slope_cache) >= _EXACT_SLOPE_CACHE_LIMIT:
+                self._exact_slope_cache.pop(next(iter(self._exact_slope_cache)))
             theta = self._exact_theta_integers[index]
             slopes = [
                 [
