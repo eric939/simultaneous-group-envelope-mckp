@@ -1,0 +1,25 @@
+{
+  "classification": "v2.0.2 release-revision evidence campaign",
+  "code_commit": "904698662117d8f4c70ccb472031ddc86c965e77",
+  "heldout_primary_seeds": [
+    601,
+    602,
+    603,
+    604,
+    605
+  ],
+  "load_average_at_start": [
+    5.9794921875,
+    6.03564453125,
+    5.37451171875
+  ],
+  "source_sha256": {
+    "B_V202_RELEASE_REVISION_PROTOCOL.md": "1e7f85c07c516705f5fdf3a97f25387f01dab775c23736d4ab01bf359e81c33f",
+    "benchmark_instances.py": "868d4fc7ad4810932fba07ce19449c9f83e919278f4aebdd64275dd68338ecbe",
+    "compressed_interval_oracle.py": "7a77be999f9419be125672fd1c0bb2f58de5615ba09def3ebd1deed677c0e1aa",
+    "exact_integration_campaign.py": "c808ad0d98ca27a0c7a546a2043d4744de919dc0b511da3f1061c860dcaa7f63",
+    "run_b_v202_release_campaign.py": "59aaea869470560536035ac6f10c1c3847bc8d1a86805d9f5b742eb6ec511a77",
+    "structural_feasibility_study.py": "3fb2e4e1a3c73e5f1d973fc8e6c0fb1a99ff9f5071c211fdda5d69f23990773b",
+    "v4_publication_campaign.py": "1c6f861718c0d2e52a79c2754d22ee160c1803fe080df2f62fb8dff15c0632b7"
+  }
+}

@@ -1,20 +1,24 @@
-# Batched Lagrangian bounds for robust MCKP — v2 reproducibility code
+# Batched Lagrangian bounds for robust MCKP — reproducibility code
 
-This reviewer-facing repository contains the algorithms, tests, experiment
-drivers, and released computational evidence for the current v2 revision of
-*Batched Lagrangian Bounds for Robust Multiple-Choice Knapsack* (the revision
-line of [arXiv:2608.08861](https://arxiv.org/abs/2608.08861)).
-The current reproducibility release is
-[`v2.0.1`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.0.1).
-It adds the public development-history record and the hash-pinned UCI
-reconstruction path without changing the frozen evidence or numerical results.
-The underlying paper-aligned code and evidence snapshot remains
-[`v2.0.0`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.0.0).
-The immutable base campaign was published first at
+This repository contains the algorithms, tests, experiment drivers, and
+released computational evidence for *Batched Lagrangian Bounds for Robust
+Multiple-Choice Knapsack* (revision line of
+[arXiv:2608.08861](https://arxiv.org/abs/2608.08861)).
+
+The current release is
+[`v2.0.2`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.0.2):
+a numerical-robustness release whose repairs are listed in
+[`CHANGELOG.md`](CHANGELOG.md). Its evidence directory
+`results/release/2026-10-31-v2.0.2-release-revision/` contains a complete rerun
+of the serialized campaign with this exact code and a frozen held-out primary
+panel (seeds 601–605). Earlier tags remain available:
+[`v2.0.1`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.0.1)
+(provenance and UCI reconstruction),
+[`v2.0.0`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.0.0)
+(paper-aligned analysis) and
 [`v1.0.0`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v1.0.0)
-(`ba52f78`); v2.0.0 (`acd9e8c`) adds the paper-aligned derived analysis and
-presentation layer without rewriting that evidence. The machine-readable
-mapping is in `provenance/RELEASE_PROVENANCE.json`.
+(base evidence). The machine-readable mapping is in
+`provenance/RELEASE_PROVENANCE.json`.
 
 The manuscript, submission packages, publication notes, literature audits,
 and historical paper sources are intentionally not part of this software
@@ -23,13 +27,14 @@ repository.
 ## What is included
 
 - `research/compressed_interval_oracle.py`: the prefix–suffix evaluator,
-  simultaneous threshold-family bound, and certified multiplier search.
+  simultaneous threshold-family bound, and multiplier search with an explicit
+  bracket-width error bound and floating-point error enclosures.
 - `research/integrated_exact_solver.py`: threshold-interval integration with
   exact feasibility and objective checks.
 - `research/bound_dominance.py`, `research/interval_baselines.py`, and
   `research/structural_feasibility_study.py`: the matched clique-LP comparator
   and independent LP validation routines.
-- `src/robust_mckp/`: the shared resource-robust MCKP model and certifying
+- `src/robust_mckp/`: the shared resource-robust MCKP model and
   fixed-threshold solvers used by the computational study.
 - `research/benchmark_instances.py` and
   `research/v4_publication_campaign.py`: deterministic generators and the
@@ -46,6 +51,11 @@ repository.
   environments, calibration aggregates, and SHA-256 manifest.
 - `results/release/2026-08-28-paper-b-v2-analysis/`: the compact v2 derived
   release containing CSV/JSON analysis, PNG visualizations, and a manifest.
+- `results/release/2026-10-31-v2.0.2-release-revision/`: the v2.0.2
+  release-revision campaign, held-out primary panel and exact-integration
+  audit, with protocol and SHA-256 manifest.
+- `results/release/2026-10-0*-primary-heldout/`: five earlier held-out primary
+  confirmations on pinned intermediate repair revisions.
 - `provenance/`: the separately hashed current-layer release map, UCI source
   hashes, and the disclosed R2/R3-to-final computational development history.
 
@@ -95,5 +105,16 @@ The final 2.37-fold primary result is disclosed as development evidence, not
 as an untouched confirmation experiment: earlier R2/R3 failures, including a
 1.79-fold same-design run, informed algorithm-preserving implementation work.
 See `provenance/DEVELOPMENT_HISTORY.md`.
+
+## Numerical scope
+
+The mathematical guarantees of the paper hold in exact real arithmetic. The
+implementation computes in binary64 with outward error enclosures and exact
+rational fallbacks for ambiguous signs and nonfinite intermediates. These
+safeguards are tested (246 tests) and parts of the enclosure arithmetic are
+proved in a separate Lean model, but the solver as a whole is not formally
+verified, and HiGHS LP values are accepted on the solver's reported status.
+The external coefficient-transfer panel was not rerun for v2.0.2 and keeps its
+v2.0.0 evidence.
 
 The software is MIT licensed.

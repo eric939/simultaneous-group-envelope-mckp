@@ -183,7 +183,7 @@ def verify_current_provenance(provenance: Path) -> int:
     history = (provenance / "DEVELOPMENT_HISTORY.md").read_text(encoding="utf-8")
 
     public_release = record["current_public_release"]
-    require(public_release["git_tag"] == "v2.0.1", "current public tag changed")
+    require(public_release["git_tag"] == "v2.0.2", "current public tag changed")
 
     layers = record["release_layers"]
     base = layers["immutable_base_evidence_code"]
@@ -249,6 +249,67 @@ def verify_current_provenance(provenance: Path) -> int:
         "frozen UCI SKU aggregate provenance mismatch",
     )
     return len(manifest)
+
+
+RELEASE_REVISION = ROOT / "results" / "release" / "2026-10-31-v2.0.2-release-revision"
+INTERMEDIATE_HELDOUT = (
+    "2026-10-01-post-repair-primary-heldout",
+    "2026-10-02-subnormal-repair-primary-heldout",
+    "2026-10-02-radius-inflation-primary-heldout",
+    "2026-10-02-group-score-repair-primary-heldout",
+    "2026-10-02-crossover-radius-primary-heldout",
+)
+
+
+def verify_protocol_consistency(directory: Path) -> None:
+    protocol_digest = sha256(directory / "protocol.json")
+    protocol = json.loads((directory / "protocol.json").read_text(encoding="utf-8"))
+    controls = protocol.get("thread_environment", {})
+    require(controls and all(v == "1" for v in controls.values()), f"no single-thread controls in {directory.name}")
+    for environment in directory.glob("environment_*.json"):
+        record = json.loads(environment.read_text(encoding="utf-8"))
+        require(record.get("protocol_sha256") == protocol_digest, f"protocol mismatch in {directory.name}/{environment.name}")
+        observed = record.get("thread_environment", {})
+        require(all(observed.get(k) == v for k, v in controls.items()), f"thread mismatch in {directory.name}/{environment.name}")
+
+
+def verify_release_revision(root: Path) -> tuple[int, list[str]]:
+    """Check integrity of the v2.0.2 evidence; report (not require) scientific gates."""
+    manifest = verify_manifest(root)
+    record = json.loads((root / "campaign_manifest.json").read_text(encoding="utf-8"))
+    commit = record["code_commit"]
+    ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", commit, "HEAD"], cwd=ROOT)
+    require(ancestor.returncode == 0, f"evidence commit {commit} is not in this history")
+    require(record["heldout_primary_seeds"] == [601, 602, 603, 604, 605], "unexpected held-out seeds")
+    published = root / "published-design"
+    counts = {"validation": 40, "kernel": 48, "common_trace": 24, "primary": 60,
+              "robustness": 36, "stress": 8, "application": 9}
+    for stem, expected in counts.items():
+        require(len(csv_rows(published / f"{stem}.csv")) == expected, f"row count {stem}")
+        summary = json.loads((published / f"{stem}_summary.json").read_text(encoding="utf-8"))
+        require(int(summary["instances"]) == expected, f"summary count {stem}")
+    verify_protocol_consistency(published)
+    heldout = root / "heldout-primary"
+    require(len(csv_rows(heldout / "primary.csv")) == 60, "held-out row count")
+    require(len(csv_rows(heldout / "primary_raw_timings.csv")) == 600, "held-out raw timing count")
+    verify_protocol_consistency(heldout)
+    exact = json.loads((root / "exact_integration" / "exact_integration_summary.json").read_text(encoding="utf-8"))
+    require(int(exact["instances"]) == 12, "exact-integration count")
+    require(float(exact["maximum_certified_objective_difference"]) <= 2e-7, "certified objectives disagree")
+    report = []
+    for label, path in (("validation", published / "validation_summary.json"),
+                        ("kernel", published / "kernel_summary.json"),
+                        ("development primary", published / "primary_summary.json"),
+                        ("robustness", published / "robustness_summary.json"),
+                        ("held-out primary", heldout / "primary_summary.json")):
+        gates = json.loads(path.read_text(encoding="utf-8")).get("gates", {})
+        failed = [k for k, ok in gates.items() if not ok]
+        report.append(f"{label}: {len(gates) - len(failed)}/{len(gates)} gates" + (f" (failed: {', '.join(failed)})" if failed else ""))
+    for name in INTERMEDIATE_HELDOUT:
+        directory = root.parent / name
+        verify_manifest(directory)
+        require(len(csv_rows(directory / "primary_raw_timings.csv")) == 600, f"raw count {name}")
+    return len(manifest), report
 
 
 def verify_public_tree() -> None:
@@ -363,12 +424,15 @@ def main() -> None:
     v2_rows = verify_v2_analysis(release, analysis_release)
     provenance_files = verify_current_provenance(provenance)
     verify_public_tree()
+    revision_files, gate_report = verify_release_revision(RELEASE_REVISION)
+    for line in gate_report:
+        print(f"v2.0.2 evidence gate outcome: {line}")
 
     print(
         "RELEASE VERIFY: PASS "
         f"({len(manifest)} evidence files, {sum(expected_counts.values())} campaign rows, "
         f"{len(exact_rows)} exact-integration rows, {v2_rows} v2 analysis rows, "
-        f"{provenance_files} provenance files)"
+        f"{provenance_files} provenance files, {revision_files} v2.0.2 evidence files)"
     )
 
 

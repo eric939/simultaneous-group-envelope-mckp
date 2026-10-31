@@ -1,0 +1,28 @@
+{
+  "classification": "held-out primary timing confirmation after subnormal-radius and gap repair",
+  "code_commit": "400e9e8fdbf37131496522e967738ef6a63d4ddd",
+  "confirmation_primary_seeds": [
+    201,
+    202,
+    203,
+    204,
+    205
+  ],
+  "expected_instances": 60,
+  "expected_raw_method_timings": 600,
+  "note": "No simultaneous Lean builds or other CPU-heavy work during this timing run.",
+  "source_sha256": {
+    "audit/run_b_subnormal_primary_confirmation.py": "65fc8233c9ed52e27e94380adba0ef8d0a231769d33d536a53c9495d951d41ad",
+    "paper-b/code/research/benchmark_instances.py": "868d4fc7ad4810932fba07ce19449c9f83e919278f4aebdd64275dd68338ecbe",
+    "paper-b/code/research/compressed_interval_oracle.py": "43b9573071c478e0aff374ac3ef64b080a6432d110cef7343f4ec1bbeaab7cad",
+    "paper-b/code/research/structural_feasibility_study.py": "3fb2e4e1a3c73e5f1d973fc8e6c0fb1a99ff9f5071c211fdda5d69f23990773b",
+    "paper-b/code/research/v4_publication_campaign.py": "1c6f861718c0d2e52a79c2754d22ee160c1803fe080df2f62fb8dff15c0632b7"
+  },
+  "upstream_primary_seeds": [
+    11,
+    12,
+    13,
+    14,
+    15
+  ]
+}

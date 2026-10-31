@@ -13,6 +13,16 @@ with HiGHS 1.12.0, and one Apple M4 thread. Phase-specific dependency,
 machine, and thread-control records are included as `environment_*.json`.
 The exact-integration audit additionally records PySCIPOpt and SCIP versions.
 
+The v2.0.2 release-revision campaign
+(`results/release/2026-10-31-v2.0.2-release-revision/`) used the same lock
+file under CPython 3.12.12 (NumPy 2.5.1, SciPy 1.18.0) on the same machine
+class, single-threaded and serial. Its driver and frozen protocol are recorded
+in `campaign_manifest.json`; it reruns every phase except `external` with the
+original seeds, then a held-out primary panel with seeds 601–605, then the
+exact-integration audit. Reproduce it with the v2.0.2 checkout by running the
+phases of `research/v4_publication_campaign.py` into a new directory (see
+`make reproduce`) and the held-out panel by replacing the primary seed list.
+
 The implementation requires aggregate objective minima and maxima to remain
 finite and representable in binary64. Inputs outside that domain are rejected
 with rescaling guidance.
@@ -109,8 +119,8 @@ test, not a replication of the archive's objective-uncertainty model.
 
 ## Interpretation boundary
 
-The release supports the prefix–suffix identities, certified multiplier
-search, interval bounds, comparator checks, and paired runtimes reported by the
+The release supports the prefix–suffix identities, the multiplier search with
+its exact-arithmetic bracket error bound, interval bounds, comparator checks, and paired runtimes reported by the
 v2 manuscript. Timing results are instance-level observations, not universal
 performance claims. The resource-uncertainty implementation does not establish
 native objective-uncertainty runtime performance.

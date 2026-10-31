@@ -1,0 +1,61 @@
+{
+  "all_interval_bounds_certified": true,
+  "bootstrap_strata": "family_x_size",
+  "compressed_tolerance_rate": 1.0,
+  "families_with_median_speedup_gt_one": 4,
+  "family_median_speedup": {
+    "correlated_risk": 2.270854553235305,
+    "dense_frontier": 1.8615925056047593,
+    "many_breakpoints": 1.6887837106677597,
+    "near_tie": 1.950511903298841
+  },
+  "gates": {
+    "bootstrap_ci_lower": true,
+    "compressed_tolerance": true,
+    "family_breadth": true,
+    "geomean_speedup": true,
+    "joint_tolerance": true,
+    "root_dominance": true,
+    "win_rate": true
+  },
+  "geomean_speedup": 2.2953017701993454,
+  "geomean_speedup_ci95": [
+    2.192535480034298,
+    2.403838147858032
+  ],
+  "instances": 60,
+  "joint_tolerance_rate": 1.0,
+  "maximum_final_lower_bound_relative_difference": 0.0,
+  "maximum_oracle_optimality_gap": 0.00032499244116479536,
+  "maximum_scaled_oracle_optimality_gap": 9.619965485553236e-09,
+  "median_compressed_theta_fraction": 0.23076923076923078,
+  "median_speedup": 1.937009882082378,
+  "pass": true,
+  "root_dominance_rate": 1.0,
+  "sign_test_pvalue": 8.673617379884035e-19,
+  "size_geomean_speedup": {
+    "1440": 3.492792134990798,
+    "360": 1.627287726993726,
+    "720": 2.1275622967584398
+  },
+  "timing_stability": {
+    "geomean_repeat_block_speedup": 2.290975820797876,
+    "maximum_within_instance_cv": {
+      "clique": 0.10984942828996501,
+      "compressed": 0.15494029917123128
+    },
+    "median_first_over_second_time": {
+      "clique": 0.9990654039204974,
+      "compressed": 0.993047337684207
+    },
+    "median_within_instance_cv": {
+      "clique": 0.008914067581203064,
+      "compressed": 0.00947243368473938
+    },
+    "minimum_repeat_block_speedup": 1.25933134870979,
+    "repeat_block_wins": 300,
+    "repeat_blocks": 300
+  },
+  "win_rate": 1.0,
+  "wins": 60
+}

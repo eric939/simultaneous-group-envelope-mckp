@@ -1,0 +1,21 @@
+{
+  "bootstrap_ci95": [
+    2.291576334479469,
+    2.498271344165625
+  ],
+  "gates": {
+    "bootstrap_ci_lower": true,
+    "compressed_tolerance": true,
+    "family_breadth": true,
+    "geomean_speedup": true,
+    "joint_tolerance": true,
+    "root_dominance": true,
+    "win_rate": true
+  },
+  "geomean_speedup": 2.390826808818398,
+  "instances": 60,
+  "raw_timings": 600,
+  "repeat_block_wins": 300,
+  "result": "PASS",
+  "wins": 60
+}

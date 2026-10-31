@@ -1,0 +1,28 @@
+{
+  "classification": "held-out primary timing confirmation after outward ragged score-radius scaling repair",
+  "code_commit": "26fe28160584ca1856edc3d66404476c68138c83",
+  "confirmation_primary_seeds": [
+    401,
+    402,
+    403,
+    404,
+    405
+  ],
+  "expected_instances": 60,
+  "expected_raw_method_timings": 600,
+  "note": "No simultaneous Lean builds or other CPU-heavy work during this timing run.",
+  "source_sha256": {
+    "audit/run_b_group_score_primary_confirmation.py": "42cbfefe789585a6cbf7c5bb042f9c0594e41d96a843ed544155940ccc9f6886",
+    "paper-b/code/research/benchmark_instances.py": "868d4fc7ad4810932fba07ce19449c9f83e919278f4aebdd64275dd68338ecbe",
+    "paper-b/code/research/compressed_interval_oracle.py": "fe77bec75f415e679e5cf42974953ea2cc7c06d47deb7528ae5c202f7904dd84",
+    "paper-b/code/research/structural_feasibility_study.py": "3fb2e4e1a3c73e5f1d973fc8e6c0fb1a99ff9f5071c211fdda5d69f23990773b",
+    "paper-b/code/research/v4_publication_campaign.py": "1c6f861718c0d2e52a79c2754d22ee160c1803fe080df2f62fb8dff15c0632b7"
+  },
+  "upstream_primary_seeds": [
+    11,
+    12,
+    13,
+    14,
+    15
+  ]
+}

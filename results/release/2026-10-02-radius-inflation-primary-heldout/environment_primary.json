@@ -1,0 +1,18 @@
+{
+  "command": "primary",
+  "machine": "arm64",
+  "numpy": "2.5.3",
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "processor": "arm",
+  "protocol_sha256": "86b5e0327572b68f9fc3e47f0762fdd8811ec4f970c899e3bccc40e567301809",
+  "python": "3.12.12 (main, Dec 17 2025, 21:07:08) [Clang 21.1.4 ]",
+  "scipy": "1.18.1",
+  "thread_environment": {
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "timestamp_utc": "2026-10-02T10:04:35Z"
+}

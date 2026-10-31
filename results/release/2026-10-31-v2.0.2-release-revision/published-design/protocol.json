@@ -1,0 +1,211 @@
+{
+  "application": {
+    "dataset": "UCI Online Retail (id 352)",
+    "gamma_rule": "floor(sqrt(n))",
+    "menu_size": 12,
+    "repeats": 3,
+    "seeds": [
+      61,
+      62,
+      63
+    ],
+    "sizes": [
+      360,
+      720,
+      1440
+    ],
+    "time_limit_seconds": 60.0
+  },
+  "common_trace": {
+    "dyadic_depth": 2,
+    "families": [
+      "dense_frontier",
+      "correlated_risk",
+      "near_tie",
+      "many_breakpoints"
+    ],
+    "gamma_rule": "floor(sqrt(n))",
+    "menu_size": 6,
+    "repeats": 3,
+    "seeds": [
+      51,
+      52
+    ],
+    "sizes": [
+      360,
+      720,
+      1440
+    ]
+  },
+  "external_knapsack": {
+    "archive_bytes": 234397168,
+    "archive_sha256": "8571b3e545607415a38a39dc506b21bd891b6a22ce252e42a1622a5a5f451818",
+    "archive_url": "https://zenodo.org/api/records/7940637/files/RobustKnapsack.zip/content",
+    "record_doi": "10.5281/zenodo.7419028",
+    "repeats": 2,
+    "sizes_and_seeds": {
+      "1000": [
+        31,
+        32,
+        33
+      ],
+      "10000": [
+        51,
+        52,
+        53
+      ],
+      "5000": [
+        41,
+        42,
+        43
+      ]
+    },
+    "source": "Gersing, Buesing, and Koster robust-knapsack benchmark archive",
+    "time_limit_seconds": 90.0,
+    "transformation": "Each binary item becomes a two-option group. Nominal profits and weights are retained; the published objective-deviation vector is transparently transferred to resource deviations for this model-compatible stress test."
+  },
+  "gates": {
+    "kernel_geomean_speedup_n_ge_360": 3.0,
+    "kernel_identity_max_absolute_error": 2e-06,
+    "primary_bootstrap_ci_lower": 1.5,
+    "primary_compressed_tolerance_rate": 1.0,
+    "primary_families_with_median_speedup_gt_one": 4,
+    "primary_geomean_speedup": 2.0,
+    "primary_joint_tolerance_rate": 1.0,
+    "primary_root_dominance_rate": 0.95,
+    "primary_win_rate": 0.8,
+    "robustness_compressed_tolerance_rate": 1.0,
+    "robustness_each_configuration_median_speedup": 1.0,
+    "validation_certificate_max_violation": 2e-06,
+    "validation_max_absolute_error": 2e-06,
+    "validation_max_scaled_certificate_gap": 1.1e-08,
+    "validation_minimum_slack": -2e-06
+  },
+  "generator_seed_namespace": "v4|family|n|m|Gamma|seed",
+  "kernel": {
+    "families": [
+      "dense_frontier",
+      "correlated_risk",
+      "near_tie",
+      "many_breakpoints"
+    ],
+    "gamma_rule": "floor(sqrt(n))",
+    "lambda_multipliers": [
+      0.0,
+      0.01,
+      0.03,
+      0.1,
+      0.3,
+      1.0,
+      3.0,
+      10.0,
+      30.0
+    ],
+    "menu_size": 6,
+    "repeats": 5,
+    "seeds": [
+      21,
+      22,
+      23
+    ],
+    "sizes": [
+      90,
+      180,
+      360,
+      720
+    ]
+  },
+  "method_order": "alternating paired blocks within instance",
+  "primary": {
+    "families": [
+      "dense_frontier",
+      "correlated_risk",
+      "near_tie",
+      "many_breakpoints"
+    ],
+    "gamma_rule": "floor(sqrt(n))",
+    "menu_size": 6,
+    "repeats": 5,
+    "seeds": [
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "sizes": [
+      360,
+      720,
+      1440
+    ],
+    "time_limit_seconds": 60.0
+  },
+  "relative_tolerance": 1e-06,
+  "robustness": {
+    "configurations": [
+      {
+        "gamma_rule": "one",
+        "menu_size": 6,
+        "name": "sparse_budget"
+      },
+      {
+        "gamma_rule": "sqrt",
+        "menu_size": 12,
+        "name": "wide_menu"
+      },
+      {
+        "gamma_rule": "twenty_percent",
+        "menu_size": 6,
+        "name": "large_budget"
+      }
+    ],
+    "families": [
+      "dense_frontier",
+      "correlated_risk",
+      "near_tie",
+      "many_breakpoints"
+    ],
+    "n": 720,
+    "repeats": 3,
+    "seeds": [
+      31,
+      32,
+      33
+    ],
+    "time_limit_seconds": 60.0
+  },
+  "statistical_unit": "instance",
+  "stress": {
+    "families": [
+      "dense_frontier",
+      "correlated_risk",
+      "near_tie",
+      "many_breakpoints"
+    ],
+    "gamma_rule": "floor(sqrt(n))",
+    "menu_size": 6,
+    "repeats": 2,
+    "seeds": [
+      41
+    ],
+    "sizes": [
+      2880,
+      5760
+    ],
+    "time_limit_seconds": 90.0
+  },
+  "thread_environment": {
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "threads": 1,
+  "timing_estimator": "median wall time within instance",
+  "validation": {
+    "instances": 40,
+    "seed_start": 1000
+  },
+  "version": "v4-publication-20260801-certified-minimax"
+}

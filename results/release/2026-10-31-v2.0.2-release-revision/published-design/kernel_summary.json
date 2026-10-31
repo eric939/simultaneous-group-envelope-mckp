@@ -1,0 +1,18 @@
+{
+  "gates": {
+    "identity": true,
+    "speed": true
+  },
+  "geomean_query_speedup_n_ge_360": 7.5632218625074294,
+  "geomean_total_speedup_n_ge_360": 59.856745997006016,
+  "instances": 48,
+  "maximum_identity_error": 4.2747706174850464e-07,
+  "median_storage_ratio_n_720": 2.65064510267127,
+  "pass": true,
+  "size_geomean_total_speedup": {
+    "180": 41.28455322194631,
+    "360": 52.145846839229634,
+    "720": 68.70786953362338,
+    "90": 30.697931052453825
+  }
+}
