@@ -35,7 +35,11 @@ from robust_mckp.exact_bnb import (
 )
 from robust_mckp.solver import solve as solve_hullround
 from research.compressed_interval_oracle import CompressedThetaIntervalOracle
-from research.structural_feasibility_study import bounded_theta_clique_lp
+from research.structural_feasibility_study import (
+    FixedThetaLPOracle,
+    bounded_theta_clique_lp,
+)
+from research.fixed_theta_highs import solve_fixed_theta_highs
 
 
 BoundKind = Literal["envelope", "clique"]
@@ -51,6 +55,13 @@ class IntervalExactConfig:
     seed_endpoint_midpoint: bool = True
     solve_split_midpoints: bool = False
     use_hullround_incumbent: bool = True
+    # "bnb": the repository's exact fixed-threshold branch and bound;
+    # "highs": HiGHS MILP on the fixed-threshold MCKP (research.fixed_theta_highs).
+    fixed_theta_solver: str = "bnb"
+    # Bound a single-threshold interval by its fixed-threshold LP, as the LP
+    # search does, instead of by the interval bound (exact there, but its
+    # numerical minimization is slow on a single threshold).
+    singleton_lp_bound: bool = False
 
 
 @dataclass
@@ -141,10 +152,16 @@ def solve_interval_exact(
             1.0, abs(incumbent_value) if math.isfinite(incumbent_value) else 1.0
         )
 
+    singleton_lp = (
+        FixedThetaLPOracle(instance) if cfg.singleton_lp_bound else None
+    )
+
     def interval_bound(lo: int, hi: int) -> float:
         nonlocal interval_bound_evaluations, bound_seconds
         bound_start = time.perf_counter()
-        if envelope is not None:
+        if singleton_lp is not None and lo == hi:
+            value = float(singleton_lp.value(float(thetas[lo])))
+        elif envelope is not None:
             value = float(envelope.bound(lo, hi).upper_bound)
         else:
             value, _seconds, _theta = bounded_theta_clique_lp(
@@ -163,20 +180,25 @@ def solve_interval_exact(
             return
         remaining = max(0.0, cfg.time_limit_seconds - elapsed())
         fixed_start = time.perf_counter()
-        result = solve_fixed_theta_bnb(
-            instance,
-            float(thetas[index]),
-            FixedThetaBNBConfig(
-                tolerance=cfg.tolerance,
-                time_limit_seconds=remaining,
-                objective_cutoff=(
-                    incumbent_value if math.isfinite(incumbent_value) else None
+        if cfg.fixed_theta_solver == "highs":
+            result = solve_fixed_theta_highs(
+                instance, float(thetas[index]), time_limit=remaining
+            )
+        else:
+            result = solve_fixed_theta_bnb(
+                instance,
+                float(thetas[index]),
+                FixedThetaBNBConfig(
+                    tolerance=cfg.tolerance,
+                    time_limit_seconds=remaining,
+                    objective_cutoff=(
+                        incumbent_value if math.isfinite(incumbent_value) else None
+                    ),
+                    use_cutoff_pruning=True,
+                    use_cache=True,
+                    use_greedy_incumbent=True,
                 ),
-                use_cutoff_pruning=True,
-                use_cache=True,
-                use_greedy_incumbent=True,
-            ),
-        )
+            )
         fixed_theta_seconds += time.perf_counter() - fixed_start
         total_nodes += int(result.nodes_explored)
         theta_results[index] = result
