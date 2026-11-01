@@ -1,0 +1,2 @@
+many_breakpoints_n1440_m6_g37_s701 B 7201 candidates 0.0s hullround 272.5s envelope-oracle 0.3s
+uci_online_retail_n1440_s61 B 7995 candidates 0.0s hullround 314.9s envelope-oracle 1.0s

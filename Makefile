@@ -8,7 +8,7 @@ UCI_XLSX ?= data_cache/pathC_uci/Online Retail.xlsx
 UCI_OUTPUT ?= results/local/uci_calibration
 UCI_XLSX_SHA256 := 43465a06f2ccf7c8b5bd2892bc7defb52f97487934fe93b16ae4c3936424676d
 
-.PHONY: install test verify derive-v2 reconstruct-uci reproduce exact-audit clean
+.PHONY: install test verify derive-v2 reconstruct-uci reproduce exact-audit scale clean
 
 install:
 	uv sync --frozen --extra experiments --extra validation --extra dev
@@ -57,6 +57,14 @@ exact-audit:
 		$(PYTHON) research/exact_integration_campaign.py \
 		--output-dir $(LOCAL_DIR)/exact_integration \
 		--sizes 30 --seeds 0,1,2 --repetitions 2 --time-limit 5
+
+scale:
+	env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+		VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
+		$(PYTHON) research/scale_campaign.py lp-direct --output-dir results/local/v2.1-scale/lp-direct
+	env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+		VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
+		$(PYTHON) research/scale_campaign.py integer --output-dir results/local/v2.1-scale/integer
 
 clean:
 	$(PYTHON) -c "from pathlib import Path; import shutil; p=Path('results/local'); shutil.rmtree(p) if p.exists() else None"

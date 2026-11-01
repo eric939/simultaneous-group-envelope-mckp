@@ -1,6 +1,47 @@
 # Changelog
 
-## v2.0.2 — 31 October 2026 (prepared locally; not yet published)
+## v2.1.0 — 1 November 2026
+
+Experiment release. The prefix–suffix evaluator, the interval bound, the
+clique-LP comparator and the fixed-threshold LP routine are unchanged from
+v2.0.2.
+
+### Added
+- `research/scale_campaign.py`: two serialized experiments with a frozen
+  protocol (`v2.1-scale-20261101-frozen`). `lp-direct` compares the complete
+  LP-family search with the batched and the clique-LP interval bound against
+  evaluating every fixed-threshold LP with the same LP routine (held-out
+  seeds 601–605, the robustness configurations and the UCI pricing panel).
+  `integer` solves the exact robust MCKP at n = 360–1440 by threshold-interval
+  search with either bound, by direct threshold enumeration with LP-bound
+  pruning, and by the compact Bertsimas–Sim MILP with HiGHS and with SCIP;
+  every decision is re-checked in exact rational arithmetic.
+- `research/fixed_theta_highs.py`: HiGHS fixed-threshold MCKP subproblems and
+  the compact MILPs (HiGHS, SCIP).
+- `research/integrated_exact_solver.py`: optional HiGHS subproblems and
+  fixed-threshold LP bounds on single-threshold intervals (defaults
+  unchanged).
+- `results/release/2026-11-01-v2.1-scale/`: complete records of both
+  phases (every planned run, including time-outs and overruns), protocol,
+  environments, logs, the non-reported pilots, a post-hoc diagnostic of the
+  integer set-up time, and a SHA-256 manifest.
+- `tests/test_scale_campaign.py`; `scripts/verify_release.py` checks the
+  v2.1 evidence.
+
+### Findings recorded in the evidence
+- The batched bound is faster than the clique LP on all 60 held-out
+  instances; the clique LP is faster on all 9 pricing instances.
+- A direct scan of every fixed-threshold LP is faster than either search
+  when there are 26 thresholds; the batched search is faster when there are
+  thousands.
+- In exact integer search the two interval bounds give the same certified
+  instances and times; direct enumeration is faster on the structured
+  families and the compact MILPs on the pricing panel.
+- The threshold-based integer methods do not check the time limit during the
+  initial rounding heuristic, which overran the limit on the six instances
+  with B ≥ 7201; these runs are recorded as failures.
+
+## v2.0.2 — 31 October 2026
 
 Numerical-robustness release. The prefix–suffix algebra, the interval bound,
 the clique-LP comparator, the search and the experiment protocol are

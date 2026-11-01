@@ -3,8 +3,8 @@
  "paper": "Batched Lagrangian Bounds for Robust Multiple-Choice Knapsack",
  "repository": "https://github.com/eric939/simultaneous-group-envelope-mckp",
  "current_public_release": {
-  "git_tag": "v2.0.2",
-  "role": "Numerical-robustness release; complete campaign rerun with this code plus a frozen held-out primary panel"
+  "git_tag": "v2.1.0",
+  "role": "Adds the direct-baseline and exact-integer scale experiments (results/release/2026-11-01-v2.1-scale); evaluator, clique-LP comparator and fixed-threshold LP routine unchanged from v2.0.2"
  },
  "release_layers": {
   "immutable_base_evidence_code": {

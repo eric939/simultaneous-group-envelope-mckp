@@ -1,0 +1,128 @@
+{
+  "integer": {
+    "application": {
+      "calibration": "results/release/2026-08-09-paper-b-final-r5/uci_calibration",
+      "gamma_rule": "sqrt",
+      "menu_size": 12,
+      "seeds": [
+        99
+      ],
+      "sizes": [
+        360,
+        720,
+        1440
+      ]
+    },
+    "certified": "status optimal and the decision passes the exact rational check",
+    "incumbent": "threshold searches and direct enumeration start from the exactly checked HullRound decision; compact models start cold",
+    "method_order": "cyclic rotation of the five methods by instance index",
+    "methods": [
+      "envelope",
+      "clique",
+      "direct",
+      "compact_highs",
+      "compact_scip"
+    ],
+    "mip_relative_gap": 1e-07,
+    "purpose": "exact robust MCKP: threshold-interval search with each bound and HiGHS fixed-threshold subproblems, direct enumeration with LP pruning, compact MILP",
+    "repeats": 1,
+    "search_tolerance": 1e-07,
+    "structured": {
+      "families": [
+        "dense_frontier",
+        "correlated_risk",
+        "near_tie",
+        "many_breakpoints"
+      ],
+      "gamma_rule": "sqrt",
+      "menu_size": 6,
+      "seeds": [
+        993
+      ],
+      "sizes": [
+        360,
+        720,
+        1440
+      ]
+    },
+    "time_limit_seconds": 120.0
+  },
+  "lp_direct": {
+    "agreement": "direct maximum M and each search's final lower bound L satisfy L <= M <= L + 1e-6 max(1, |L|) (scaled), up to 1e-9 rounding",
+    "method_order": "cyclic rotation of (batched, clique, direct) by repeat + seed",
+    "panels": {
+      "application": {
+        "calibration": "results/release/2026-08-09-paper-b-final-r5/uci_calibration",
+        "gamma_rule": "sqrt",
+        "menu_size": 12,
+        "repeats": 3,
+        "seeds": [
+          99
+        ],
+        "sizes": [
+          360,
+          720,
+          1440
+        ],
+        "time_limit_seconds": 60.0
+      },
+      "heldout": {
+        "families": [
+          "dense_frontier",
+          "correlated_risk",
+          "near_tie",
+          "many_breakpoints"
+        ],
+        "gamma_rule": "sqrt",
+        "menu_size": 6,
+        "repeats": 5,
+        "seeds": [
+          991
+        ],
+        "sizes": [
+          360,
+          720,
+          1440
+        ],
+        "time_limit_seconds": 60.0
+      },
+      "robustness": {
+        "configurations": [
+          {
+            "gamma_rule": "one",
+            "menu_size": 6,
+            "name": "sparse_budget"
+          },
+          {
+            "gamma_rule": "sqrt",
+            "menu_size": 12,
+            "name": "wide_menu"
+          },
+          {
+            "gamma_rule": "twenty_percent",
+            "menu_size": 6,
+            "name": "large_budget"
+          }
+        ],
+        "families": [
+          "dense_frontier",
+          "correlated_risk",
+          "near_tie",
+          "many_breakpoints"
+        ],
+        "n": 720,
+        "repeats": 3,
+        "seeds": [
+          992
+        ],
+        "time_limit_seconds": 60.0
+      }
+    },
+    "purpose": "complete LP-family search: batched and clique-LP interval bounds against solving every fixed-threshold LP with the same LP routine",
+    "timing_estimator": "median wall time within instance"
+  },
+  "relative_tolerance_lp_search": 1e-06,
+  "statistical_unit": "instance",
+  "threads": 1,
+  "version": "v2.1-scale-20261101"
+}

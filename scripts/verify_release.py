@@ -183,7 +183,7 @@ def verify_current_provenance(provenance: Path) -> int:
     history = (provenance / "DEVELOPMENT_HISTORY.md").read_text(encoding="utf-8")
 
     public_release = record["current_public_release"]
-    require(public_release["git_tag"] == "v2.0.2", "current public tag changed")
+    require(public_release["git_tag"] == "v2.1.0", "current public tag changed")
 
     layers = record["release_layers"]
     base = layers["immutable_base_evidence_code"]
@@ -312,6 +312,51 @@ def verify_release_revision(root: Path) -> tuple[int, list[str]]:
     return len(manifest), report
 
 
+SCALE_RELEASE = ROOT / "results" / "release" / "2026-11-01-v2.1-scale"
+
+
+def verify_scale_release(root: Path) -> tuple[int, int, int]:
+    """Check integrity and internal consistency of the v2.1 scale evidence."""
+    manifest = verify_manifest(root)
+    counts = {"lp-direct": ("lp_direct.csv", 105), "integer": ("integer.csv", 225)}
+    rows = {}
+    for phase, (name, expected) in counts.items():
+        directory = root / phase
+        protocol_digest = sha256(directory / "protocol.json")
+        protocol = json.loads((directory / "protocol.json").read_text(encoding="utf-8"))
+        require(protocol["version"] == "v2.1-scale-20261101-frozen", f"unexpected protocol in {phase}")
+        require(int(protocol["threads"]) == 1, f"protocol does not fix one thread in {phase}")
+        environment = json.loads(
+            (directory / f"environment_{phase}.json").read_text(encoding="utf-8")
+        )
+        require(environment.get("protocol_sha256") == protocol_digest, f"protocol mismatch in {phase}")
+        require(not environment.get("pilot"), f"{phase} evidence is a pilot")
+        threads = environment.get("thread_environment", {})
+        require(threads and all(v == "1" for v in threads.values()), f"thread controls in {phase}")
+        commit = environment["code_commit"]
+        ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", commit, "HEAD"], cwd=ROOT)
+        require(ancestor.returncode == 0, f"{phase} commit {commit} is not in this history")
+        rows[phase] = csv_rows(directory / name)
+        require(len(rows[phase]) == expected, f"unexpected row count in {phase}/{name}")
+    for row in rows["lp-direct"]:
+        for method in ("batched", "clique"):
+            require(row[f"{method}_status"] in {"tolerance", "exact"}, f"{method} search failed")
+            if row["direct_status"] == "optimal":
+                require(row[f"{method}_agrees_with_direct"] == "True", f"{method} disagrees on {row['instance']}")
+    certified: dict[str, list[float]] = {}
+    for row in rows["integer"]:
+        if row["certified"] == "True":
+            require(row["exactly_feasible"] == "True", f"certified run not exactly feasible: {row['instance']}")
+            require(float(row["wall_seconds"]) <= 121.0, f"certified run over the limit: {row['instance']}")
+            certified.setdefault(row["instance"], []).append(float(row["objective"]))
+    for instance, values in certified.items():
+        scale = max(1.0, abs(max(values)))
+        require(max(values) - min(values) <= 1e-6 * scale, f"certified objectives disagree on {instance}")
+    summary = json.loads((root / "integer" / "integer_summary.json").read_text(encoding="utf-8"))
+    require(summary["objective_disagreements"] == [], "recorded objective disagreements")
+    return len(manifest), len(rows["lp-direct"]), len(rows["integer"])
+
+
 def verify_public_tree() -> None:
     tracked = subprocess.check_output(
         ["git", "ls-files", "-z"], cwd=ROOT
@@ -427,6 +472,9 @@ def main() -> None:
     revision_files, gate_report = verify_release_revision(RELEASE_REVISION)
     for line in gate_report:
         print(f"v2.0.2 evidence gate outcome: {line}")
+    scale_files, scale_lp, scale_integer = verify_scale_release(SCALE_RELEASE)
+    print(f"v2.1 scale evidence: {scale_files} files, {scale_lp} LP-family instances, "
+          f"{scale_integer} integer runs")
 
     print(
         "RELEASE VERIFY: PASS "

@@ -6,9 +6,15 @@ Multiple-Choice Knapsack* (revision line of
 [arXiv:2608.08861](https://arxiv.org/abs/2608.08861)).
 
 The current release is
-[`v2.0.2`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.0.2):
+[`v2.1.0`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.1.0).
+It adds two experiments with a frozen protocol, recorded in
+`results/release/2026-11-01-v2.1-scale/`: the complete LP-family search
+against evaluating every fixed-threshold LP directly, and exact robust MCKP
+at n = 360–1440 against direct threshold enumeration and compact MILPs
+(HiGHS, SCIP). The evaluator and comparators are unchanged from
+[`v2.0.2`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.0.2),
 a numerical-robustness release whose repairs are listed in
-[`CHANGELOG.md`](CHANGELOG.md). Its evidence directory
+[`CHANGELOG.md`](CHANGELOG.md). The v2.0.2 evidence directory
 `results/release/2026-10-31-v2.0.2-release-revision/` contains a complete rerun
 of the serialized campaign with this exact code and a frozen held-out primary
 panel (seeds 601–605). Earlier tags remain available:
@@ -54,6 +60,12 @@ repository.
 - `results/release/2026-10-31-v2.0.2-release-revision/`: the v2.0.2
   release-revision campaign, held-out primary panel and exact-integration
   audit, with protocol and SHA-256 manifest.
+- `research/scale_campaign.py` and `research/fixed_theta_highs.py`: the v2.1
+  direct-baseline and exact-integer experiments, with HiGHS fixed-threshold
+  subproblems and compact MILPs.
+- `results/release/2026-11-01-v2.1-scale/`: every planned run of both v2.1
+  phases, protocol, environments, logs, non-reported pilots, a post-hoc
+  set-up diagnostic and a SHA-256 manifest.
 - `results/release/2026-10-0*-primary-heldout/`: five earlier held-out primary
   confirmations on pinned intermediate repair revisions.
 - `provenance/`: the separately hashed current-layer release map, UCI source
@@ -111,10 +123,11 @@ See `provenance/DEVELOPMENT_HISTORY.md`.
 The mathematical guarantees of the paper hold in exact real arithmetic. The
 implementation computes in binary64 with outward error enclosures and exact
 rational fallbacks for ambiguous signs and nonfinite intermediates. These
-safeguards are tested (246 tests) and parts of the enclosure arithmetic are
+safeguards are tested (266 tests) and parts of the enclosure arithmetic are
 proved in a separate Lean model, but the solver as a whole is not formally
 verified, and HiGHS LP values are accepted on the solver's reported status.
 The external coefficient-transfer panel was not rerun for v2.0.2 and keeps its
-v2.0.0 evidence.
+v2.0.0 evidence. In the v2.1 integer experiment the initial rounding heuristic
+does not check the time limit; the resulting overruns are recorded as failures.
 
 The software is MIT licensed.

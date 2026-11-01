@@ -1,0 +1,273 @@
+{
+  "application/n=1440": {
+    "clique": {
+      "certified": 0,
+      "inexact": 0,
+      "max_seconds": 330.6726718330756,
+      "median_seconds": 286.611201666994,
+      "runs": 3
+    },
+    "clique_over_envelope_geomean_joint": null,
+    "clique_over_envelope_joint_count": 0,
+    "compact_highs": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 111.93016833299771,
+      "median_seconds": 70.88364837493282,
+      "runs": 3
+    },
+    "compact_highs_over_envelope_geomean_joint": null,
+    "compact_highs_over_envelope_joint_count": 0,
+    "compact_scip": {
+      "certified": 2,
+      "inexact": 1,
+      "max_seconds": 51.7379444160033,
+      "median_seconds": 15.915424457984045,
+      "runs": 3
+    },
+    "compact_scip_over_envelope_geomean_joint": null,
+    "compact_scip_over_envelope_joint_count": 0,
+    "direct": {
+      "certified": 0,
+      "inexact": 0,
+      "max_seconds": 324.6365582080325,
+      "median_seconds": 306.82864483294543,
+      "runs": 3
+    },
+    "direct_over_envelope_geomean_joint": null,
+    "direct_over_envelope_joint_count": 0,
+    "envelope": {
+      "certified": 0,
+      "inexact": 0,
+      "max_seconds": 307.4784507920267,
+      "median_seconds": 303.4561744160019,
+      "runs": 3
+    }
+  },
+  "application/n=360": {
+    "clique": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 16.231637084041722,
+      "median_seconds": 15.533251166925766,
+      "runs": 3
+    },
+    "clique_over_envelope_geomean_joint": 0.9004460334661375,
+    "clique_over_envelope_joint_count": 3,
+    "compact_highs": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 3.8944430419942364,
+      "median_seconds": 2.205500499927439,
+      "runs": 3
+    },
+    "compact_highs_over_envelope_geomean_joint": 0.1275616802984161,
+    "compact_highs_over_envelope_joint_count": 3,
+    "compact_scip": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 1.7555057499557734,
+      "median_seconds": 0.5504283329937607,
+      "runs": 3
+    },
+    "compact_scip_over_envelope_geomean_joint": 0.04628067573836961,
+    "compact_scip_over_envelope_joint_count": 3,
+    "direct": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 19.721905166981742,
+      "median_seconds": 18.467948083067313,
+      "runs": 3
+    },
+    "direct_over_envelope_geomean_joint": 1.074783760392964,
+    "direct_over_envelope_joint_count": 3,
+    "envelope": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 17.83079962490592,
+      "median_seconds": 17.673938250052743,
+      "runs": 3
+    }
+  },
+  "application/n=720": {
+    "clique": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 109.48156941693742,
+      "median_seconds": 57.52744941704441,
+      "runs": 3
+    },
+    "clique_over_envelope_geomean_joint": 1.0989411024095161,
+    "clique_over_envelope_joint_count": 3,
+    "compact_highs": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 44.477256041020155,
+      "median_seconds": 10.140134083922021,
+      "runs": 3
+    },
+    "compact_highs_over_envelope_geomean_joint": 0.25246595429839586,
+    "compact_highs_over_envelope_joint_count": 3,
+    "compact_scip": {
+      "certified": 2,
+      "inexact": 1,
+      "max_seconds": 12.265435250010341,
+      "median_seconds": 5.170348083949648,
+      "runs": 3
+    },
+    "compact_scip_over_envelope_geomean_joint": 0.05863068404711523,
+    "compact_scip_over_envelope_joint_count": 2,
+    "direct": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 120.01351587509271,
+      "median_seconds": 120.00432508299127,
+      "runs": 3
+    },
+    "direct_over_envelope_geomean_joint": 1.2123848678717324,
+    "direct_over_envelope_joint_count": 1,
+    "envelope": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 67.54003174998797,
+      "median_seconds": 65.00422937504482,
+      "runs": 3
+    }
+  },
+  "objective_disagreements": [],
+  "structured/n=1440": {
+    "clique": {
+      "certified": 9,
+      "inexact": 0,
+      "max_seconds": 234.45332625007723,
+      "median_seconds": 19.250560646003578,
+      "runs": 12
+    },
+    "clique_over_envelope_geomean_joint": 0.9519030133062162,
+    "clique_over_envelope_joint_count": 9,
+    "compact_highs": {
+      "certified": 6,
+      "inexact": 0,
+      "max_seconds": 121.8718291670084,
+      "median_seconds": 119.78784533351427,
+      "runs": 12
+    },
+    "compact_highs_over_envelope_geomean_joint": 3.875670949901365,
+    "compact_highs_over_envelope_joint_count": 6,
+    "compact_scip": {
+      "certified": 2,
+      "inexact": 0,
+      "max_seconds": 122.22666375001427,
+      "median_seconds": 120.18276454147417,
+      "runs": 12
+    },
+    "compact_scip_over_envelope_geomean_joint": 2.0576184861032436,
+    "compact_scip_over_envelope_joint_count": 2,
+    "direct": {
+      "certified": 9,
+      "inexact": 0,
+      "max_seconds": 316.02841641707346,
+      "median_seconds": 6.247813062509522,
+      "runs": 12
+    },
+    "direct_over_envelope_geomean_joint": 0.37105665867900617,
+    "direct_over_envelope_joint_count": 9,
+    "envelope": {
+      "certified": 9,
+      "inexact": 0,
+      "max_seconds": 322.47011362505145,
+      "median_seconds": 19.599919166474137,
+      "runs": 12
+    }
+  },
+  "structured/n=360": {
+    "clique": {
+      "certified": 12,
+      "inexact": 0,
+      "max_seconds": 26.71918287500739,
+      "median_seconds": 4.436038603424095,
+      "runs": 12
+    },
+    "clique_over_envelope_geomean_joint": 1.0232827690852169,
+    "clique_over_envelope_joint_count": 12,
+    "compact_highs": {
+      "certified": 8,
+      "inexact": 0,
+      "max_seconds": 121.4105605839286,
+      "median_seconds": 7.150801500014495,
+      "runs": 12
+    },
+    "compact_highs_over_envelope_geomean_joint": 0.6831264202534237,
+    "compact_highs_over_envelope_joint_count": 8,
+    "compact_scip": {
+      "certified": 8,
+      "inexact": 0,
+      "max_seconds": 122.5132687909063,
+      "median_seconds": 9.390208999975584,
+      "runs": 12
+    },
+    "compact_scip_over_envelope_geomean_joint": 0.6466549789873667,
+    "compact_scip_over_envelope_joint_count": 8,
+    "direct": {
+      "certified": 12,
+      "inexact": 0,
+      "max_seconds": 33.36979399994016,
+      "median_seconds": 1.4037298539769836,
+      "runs": 12
+    },
+    "direct_over_envelope_geomean_joint": 0.41745167398115524,
+    "direct_over_envelope_joint_count": 12,
+    "envelope": {
+      "certified": 12,
+      "inexact": 0,
+      "max_seconds": 31.665710458997637,
+      "median_seconds": 4.380951604573056,
+      "runs": 12
+    }
+  },
+  "structured/n=720": {
+    "clique": {
+      "certified": 10,
+      "inexact": 0,
+      "max_seconds": 120.04586304200348,
+      "median_seconds": 6.942861958465073,
+      "runs": 12
+    },
+    "clique_over_envelope_geomean_joint": 1.0003469572494301,
+    "clique_over_envelope_joint_count": 10,
+    "compact_highs": {
+      "certified": 5,
+      "inexact": 0,
+      "max_seconds": 120.67006508400664,
+      "median_seconds": 120.02909270802047,
+      "runs": 12
+    },
+    "compact_highs_over_envelope_geomean_joint": 1.9424538889317553,
+    "compact_highs_over_envelope_joint_count": 5,
+    "compact_scip": {
+      "certified": 5,
+      "inexact": 0,
+      "max_seconds": 122.27743462508079,
+      "median_seconds": 120.02384906244697,
+      "runs": 12
+    },
+    "compact_scip_over_envelope_geomean_joint": 4.0401407822895585,
+    "compact_scip_over_envelope_joint_count": 5,
+    "direct": {
+      "certified": 10,
+      "inexact": 0,
+      "max_seconds": 120.04187695798464,
+      "median_seconds": 3.085929416527506,
+      "runs": 12
+    },
+    "direct_over_envelope_geomean_joint": 0.4517317236440923,
+    "direct_over_envelope_joint_count": 10,
+    "envelope": {
+      "certified": 10,
+      "inexact": 0,
+      "max_seconds": 120.05798737495206,
+      "median_seconds": 7.0781682709930465,
+      "runs": 12
+    }
+  }
+}
