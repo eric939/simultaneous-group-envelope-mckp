@@ -45,5 +45,6 @@ def test_direct_lp_scan_reports_time_limit() -> None:
 
 
 def test_protocol_is_frozen() -> None:
-    assert PROTOCOL["version"] == "v2.1-scale-20261101-frozen"
+    assert PROTOCOL["version"] == "v2.1.1-scale-20261101-frozen"
+    assert PROTOCOL["integer"]["incumbent"].startswith("every method starts cold")
     assert PROTOCOL["integer"]["time_limit_seconds"] == 120.0

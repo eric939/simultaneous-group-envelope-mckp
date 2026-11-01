@@ -44,7 +44,6 @@ from robust_mckp.exact_bnb import (  # noqa: E402
     _selection_objective_fraction,
     build_full_theta_candidates,
 )
-from robust_mckp.solver import solve as solve_hullround  # noqa: E402
 from research.benchmark_instances import build_benchmark_instance  # noqa: E402
 from research.fixed_theta_highs import (  # noqa: E402
     solve_compact_highs,
@@ -75,9 +74,15 @@ FAMILIES = ("dense_frontier", "correlated_risk", "near_tie", "many_breakpoints")
 LP_METHODS = ("batched", "clique", "direct")
 INTEGER_METHODS = ("envelope", "clique", "direct", "compact_highs", "compact_scip")
 CALIBRATION = "results/release/2026-08-09-paper-b-final-r5/uci_calibration"
+LOAD_GATE = 2.0
 
 PROTOCOL = {
-    "version": "v2.1-scale-20261101-frozen",
+    "version": "v2.1.1-scale-20261101-frozen",
+    "revision_note": "replaces v2.1-scale-20261101-frozen: all integer methods start cold "
+                     "(the HullRound heuristic did not check the time limit), each instance "
+                     "or run starts only below the load gate, CPU time and search effort "
+                     "are recorded; instances and seeds are unchanged",
+    "load_gate": {"one_minute_load_average_below": LOAD_GATE, "poll_seconds": 30},
     "statistical_unit": "instance",
     "threads": 1,
     "relative_tolerance_lp_search": RELATIVE_TOLERANCE,
@@ -117,8 +122,7 @@ PROTOCOL = {
         "method_order": "cyclic rotation of the five methods by instance index",
         "mip_relative_gap": 1e-7,
         "search_tolerance": 1e-7,
-        "incumbent": "threshold searches and direct enumeration start from the exactly "
-                     "checked HullRound decision; compact models start cold",
+        "incumbent": "every method starts cold, without a heuristic decision",
         "certified": "status optimal, the decision passes the exact rational check, and the "
                      "wall time is within the limit plus one second (overruns count as time limit)",
         "singleton_intervals": "both threshold searches bound a single-threshold interval by "
@@ -152,27 +156,13 @@ def direct_lp_scan(instance: PricingInstance, time_limit: float) -> dict:
     }
 
 
-def _hullround_incumbent(instance: PricingInstance):
-    objective_arrays = [np.asarray([o.value for o in g], dtype=float) for g in instance.items]
-    try:
-        heuristic = solve_hullround(instance, upgrade_completion=True)
-    except Exception:
-        return None, None, objective_arrays
-    if heuristic.is_feasible and heuristic.selections and certificate_is_feasible(
-        instance, heuristic.selections
-    ):
-        selection = list(map(int, heuristic.selections))
-        return selection, _selection_objective_fraction(objective_arrays, selection), objective_arrays
-    return None, None, objective_arrays
-
-
 def direct_integer(instance: PricingInstance, *, time_limit: float, tolerance: float) -> dict:
     """Thresholds in decreasing LP bound; solve each with HiGHS until the bound prunes."""
 
     start = time.perf_counter()
     elapsed = lambda: time.perf_counter() - start  # noqa: E731
-    selection, exact_value, objective_arrays = _hullround_incumbent(instance)
-    incumbent = float(exact_value) if exact_value is not None else float("-inf")
+    objective_arrays = [np.asarray([o.value for o in g], dtype=float) for g in instance.items]
+    selection, exact_value, incumbent = None, None, float("-inf")
     oracle = FixedThetaLPOracle(instance)
     thetas = build_full_theta_candidates(instance)
     bounds = []
@@ -231,7 +221,8 @@ def integer_method(instance: PricingInstance, method: str, time_limit: float) ->
     if method in {"envelope", "clique"}:
         r = solve_interval_exact(instance, IntervalExactConfig(
             bound_kind=method, tolerance=tolerance, time_limit_seconds=time_limit,
-            fixed_theta_solver="highs", singleton_lp_bound=True))
+            fixed_theta_solver="highs", singleton_lp_bound=True,
+            use_hullround_incumbent=False))
         return _integer_row(r.status, r.selected_options, r.objective_value, r.upper_bound,
                             r.runtime_seconds, theta_solves=r.theta_integer_solves,
                             interval_bound_evaluations=r.interval_bound_evaluations,
@@ -299,9 +290,17 @@ def integer_instances():
 
 def _timed(function):
     gc.collect()
-    start = time.perf_counter()
+    cpu, start = time.process_time(), time.perf_counter()
     result = function()
-    return time.perf_counter() - start, result
+    return time.perf_counter() - start, time.process_time() - cpu, result
+
+
+def _wait_for_quiet_machine() -> float:
+    """Block until the one-minute load average is below the gate; return it."""
+    while (load := os.getloadavg()[0]) >= LOAD_GATE:
+        print(f"load {load:.2f} >= {LOAD_GATE}; waiting", flush=True)
+        time.sleep(30)
+    return load
 
 
 def run_lp_direct(out: Path, limit: int | None = None) -> None:
@@ -316,16 +315,20 @@ def run_lp_direct(out: Path, limit: int | None = None) -> None:
             "direct": lambda: direct_lp_scan(inst, tl),
         }
         times = {m: [] for m in LP_METHODS}
+        cpus = {m: [] for m in LP_METHODS}
         results = {m: [] for m in LP_METHODS}
+        load = _wait_for_quiet_machine()
         for repeat in range(repeats):
             shift = (repeat + seed) % 3
             for method in LP_METHODS[shift:] + LP_METHODS[:shift]:
-                seconds, result = _timed(calls[method])
+                seconds, cpu, result = _timed(calls[method])
                 times[method].append(seconds)
+                cpus[method].append(cpu)
                 results[method].append(result)
                 raw.append({"panel": panel, "configuration": config, "family": family, "n": n,
                             "seed": seed, "method": method, "repeat": repeat, "seconds": seconds,
-                            "status": result["status"]})
+                            "cpu_seconds": cpu, "status": result["status"],
+                            "load_average": os.getloadavg()[0]})
         med = {m: float(np.median(times[m])) for m in LP_METHODS}
         direct = results["direct"][0]
         batched, clique = results["batched"][0], results["clique"][0]
@@ -333,6 +336,13 @@ def run_lp_direct(out: Path, limit: int | None = None) -> None:
                "instance": inst.name, "theta_count": direct["theta_count"],
                "batched_seconds": med["batched"], "clique_seconds": med["clique"],
                "direct_seconds": med["direct"],
+               **{f"{m}_cpu_seconds": float(np.median(cpus[m])) for m in LP_METHODS},
+               "load_average_at_start": load,
+               "batched_interval_bounds": batched["interval_bound_evaluations"],
+               "batched_multiplier_evaluations": batched["multiplier_evaluations"],
+               "clique_interval_bounds": clique["interval_lp_evaluations"],
+               "batched_root_upper_bound": batched["root_upper_bound"],
+               "clique_root_upper_bound": clique["root_upper_bound"],
                "batched_status": batched["status"], "clique_status": clique["status"],
                "direct_status": direct["status"],
                "direct_value": direct["value"],
@@ -387,7 +397,10 @@ def run_integer(out: Path, limit: int | None = None) -> None:
             break
         shift = index % len(INTEGER_METHODS)
         for method in INTEGER_METHODS[shift:] + INTEGER_METHODS[:shift]:
-            seconds, result = _timed(lambda: integer_method(inst, method, tl))
+            load = _wait_for_quiet_machine()
+            seconds, cpu, result = _timed(lambda: integer_method(inst, method, tl))
+            result["cpu_seconds"] = cpu
+            result["load_average_at_start"] = load
             result["within_limit"] = seconds <= tl + 1.0
             result["certified"] = bool(result["certified"]) and result["within_limit"]
             rows.append({"panel": panel, "family": family, "n": n, "seed": seed,
@@ -488,6 +501,9 @@ def main() -> None:
         if not pilot:
             raise SystemExit("--pilot-time-limit requires --pilot-limit")
         PROTOCOL["integer"]["time_limit_seconds"] = float(args.pilot_time_limit)
+    if pilot:  # pilots time nothing that is reported, so they ignore the load gate
+        global LOAD_GATE
+        LOAD_GATE = float("inf")
     if pilot:  # separate seeds, so no reported instance is seen before the protocol is frozen
         panels = PROTOCOL["lp_direct"]["panels"]
         panels["heldout"]["seeds"] = [991]
