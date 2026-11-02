@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "/work/research/scale_campaign.py", line 556, in <module>
+    main()
+  File "/work/research/scale_campaign.py", line 551, in main
+    run_integer(args.output_dir, args.pilot_limit)
+  File "/work/research/scale_campaign.py", line 424, in run_integer
+    load = _wait_for_quiet_machine()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/research/scale_campaign.py", line 324, in _wait_for_quiet_machine
+    while (load := _load_average()) >= LOAD_GATE:
+                   ^^^^^^^^^^^^^^^
+  File "/work/research/scale_campaign.py", line 316, in _load_average
+    stamp, load = HOST_LOAD_FILE.read_text().split()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/ev/hostload/load'

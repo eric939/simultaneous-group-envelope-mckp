@@ -1,0 +1,34 @@
+{
+  "code_commit": "dc7a635b5499ba4d74c40a5450641fa48bd841e4",
+  "load_average_at_start": [
+    2.2783203125,
+    2.1162109375,
+    2.080078125
+  ],
+  "machine": "arm64",
+  "numpy": "2.5.1",
+  "phase": "integer",
+  "pilot": false,
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "protocol_sha256": "6ec53ccbd15f8e6583be2e6aff4f7810666e9512abb07314ef5b63224d50a4a1",
+  "pyscipopt": "6.2.1",
+  "python": "3.12.12 (main, Dec 17 2025, 21:07:08) [Clang 21.1.4 ]",
+  "scipy": "1.18.0",
+  "source_sha256": {
+    "research/benchmark_instances.py": "868d4fc7ad4810932fba07ce19449c9f83e919278f4aebdd64275dd68338ecbe",
+    "research/compressed_interval_oracle.py": "7a77be999f9419be125672fd1c0bb2f58de5615ba09def3ebd1deed677c0e1aa",
+    "research/fixed_theta_highs.py": "10f75cf28c69024e49c4897724651dd129da9249145b28afba09dd80c3846c28",
+    "research/integrated_exact_solver.py": "585c6a0652bbc3bdee4757ec33e922902ba064fe8a999b3dcf8dce9bf4cc1f92",
+    "research/scale_campaign.py": "1a204c4170469605a6a6611e9a82df9b1f53f0ba755d26bf08b44f55e236da8d",
+    "research/structural_feasibility_study.py": "3fb2e4e1a3c73e5f1d973fc8e6c0fb1a99ff9f5071c211fdda5d69f23990773b",
+    "research/v4_publication_campaign.py": "1c6f861718c0d2e52a79c2754d22ee160c1803fe080df2f62fb8dff15c0632b7"
+  },
+  "thread_environment": {
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "timestamp_utc": "2026-11-02T07:56:48Z"
+}

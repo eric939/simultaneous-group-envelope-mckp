@@ -1,0 +1,30 @@
+{
+  "code_commit": "dada9820eb7e7ad6ce3b8a4ba54c90d70b82bf50",
+  "load_average_at_start": 4.03,
+  "machine": "aarch64",
+  "numpy": "2.5.1",
+  "phase": "integer",
+  "pilot": true,
+  "platform": "Linux-6.10.14-linuxkit-aarch64-with-glibc2.36",
+  "protocol_sha256": "ade4e54841e21c80fecf5200052bba85ac73b4dacfbbdbf812967e66e924f525",
+  "pyscipopt": "6.2.1",
+  "python": "3.12.12 (main, Feb 24 2026, 20:41:46) [GCC 12.2.0]",
+  "scipy": "1.18.0",
+  "source_sha256": {
+    "research/benchmark_instances.py": "868d4fc7ad4810932fba07ce19449c9f83e919278f4aebdd64275dd68338ecbe",
+    "research/compressed_interval_oracle.py": "7a77be999f9419be125672fd1c0bb2f58de5615ba09def3ebd1deed677c0e1aa",
+    "research/fixed_theta_highs.py": "10f75cf28c69024e49c4897724651dd129da9249145b28afba09dd80c3846c28",
+    "research/integrated_exact_solver.py": "585c6a0652bbc3bdee4757ec33e922902ba064fe8a999b3dcf8dce9bf4cc1f92",
+    "research/scale_campaign.py": "ee6b65ac8971a0ffb151b6d7456afca1a58a4109516e721bc8e2a180c1265af9",
+    "research/structural_feasibility_study.py": "3fb2e4e1a3c73e5f1d973fc8e6c0fb1a99ff9f5071c211fdda5d69f23990773b",
+    "research/v4_publication_campaign.py": "1c6f861718c0d2e52a79c2754d22ee160c1803fe080df2f62fb8dff15c0632b7"
+  },
+  "thread_environment": {
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "timestamp_utc": "2026-11-02T18:24:30Z"
+}

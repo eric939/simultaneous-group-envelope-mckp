@@ -1,0 +1,134 @@
+{
+  "integer": {
+    "application": {
+      "calibration": "results/release/2026-08-09-paper-b-final-r5/uci_calibration",
+      "gamma_rule": "sqrt",
+      "menu_size": 12,
+      "seeds": [
+        99
+      ],
+      "sizes": [
+        360,
+        720,
+        1440
+      ]
+    },
+    "certified": "status optimal, the decision passes the exact rational check, and the wall time is within the limit plus one second (overruns count as time limit)",
+    "incumbent": "every method starts cold, without a heuristic decision",
+    "method_order": "cyclic rotation of the five methods by instance index",
+    "methods": [
+      "envelope",
+      "clique",
+      "direct",
+      "compact_highs",
+      "compact_scip"
+    ],
+    "mip_relative_gap": 1e-07,
+    "purpose": "exact robust MCKP: threshold-interval search with each bound and HiGHS fixed-threshold subproblems, direct enumeration with LP pruning, compact MILP",
+    "repeats": 1,
+    "search_tolerance": 1e-07,
+    "singleton_intervals": "both threshold searches bound a single-threshold interval by its fixed-threshold LP, as the LP-family search does",
+    "structured": {
+      "families": [
+        "dense_frontier",
+        "correlated_risk",
+        "near_tie",
+        "many_breakpoints"
+      ],
+      "gamma_rule": "sqrt",
+      "menu_size": 6,
+      "seeds": [
+        993
+      ],
+      "sizes": [
+        360,
+        720,
+        1440
+      ]
+    },
+    "time_limit_seconds": 20.0
+  },
+  "load_gate": {
+    "applied": false,
+    "recorded": "host one-minute load average, sampled every 5 s outside the container"
+  },
+  "lp_direct": {
+    "agreement": "direct maximum M and each search's final lower bound L satisfy L <= M <= L + 1e-6 max(1, |L|) (scaled), up to 1e-9 rounding",
+    "method_order": "cyclic rotation of (batched, clique, direct) by repeat + seed",
+    "panels": {
+      "application": {
+        "calibration": "results/release/2026-08-09-paper-b-final-r5/uci_calibration",
+        "gamma_rule": "sqrt",
+        "menu_size": 12,
+        "repeats": 3,
+        "seeds": [
+          99
+        ],
+        "sizes": [
+          360,
+          720,
+          1440
+        ],
+        "time_limit_seconds": 60.0
+      },
+      "heldout": {
+        "families": [
+          "dense_frontier",
+          "correlated_risk",
+          "near_tie",
+          "many_breakpoints"
+        ],
+        "gamma_rule": "sqrt",
+        "menu_size": 6,
+        "repeats": 5,
+        "seeds": [
+          991
+        ],
+        "sizes": [
+          360,
+          720,
+          1440
+        ],
+        "time_limit_seconds": 60.0
+      },
+      "robustness": {
+        "configurations": [
+          {
+            "gamma_rule": "one",
+            "menu_size": 6,
+            "name": "sparse_budget"
+          },
+          {
+            "gamma_rule": "sqrt",
+            "menu_size": 12,
+            "name": "wide_menu"
+          },
+          {
+            "gamma_rule": "twenty_percent",
+            "menu_size": 6,
+            "name": "large_budget"
+          }
+        ],
+        "families": [
+          "dense_frontier",
+          "correlated_risk",
+          "near_tie",
+          "many_breakpoints"
+        ],
+        "n": 720,
+        "repeats": 3,
+        "seeds": [
+          992
+        ],
+        "time_limit_seconds": 60.0
+      }
+    },
+    "purpose": "complete LP-family search: batched and clique-LP interval bounds against solving every fixed-threshold LP with the same LP routine",
+    "timing_estimator": "median wall time within instance"
+  },
+  "relative_tolerance_lp_search": 1e-06,
+  "revision_note": "integer phase of v2.1.1 rerun in a Linux container on the same host, because unrelated jobs kept the host load above the gate; no load gate is applied, and the recorded load is the host's one-minute load average from a sampler outside the container; instances, seeds, methods, limits and cold starts are unchanged",
+  "statistical_unit": "instance",
+  "threads": 1,
+  "version": "v2.1.2-integer-container-20261102-frozen"
+}

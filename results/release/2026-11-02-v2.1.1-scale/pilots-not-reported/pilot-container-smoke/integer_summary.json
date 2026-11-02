@@ -1,0 +1,48 @@
+{
+  "objective_disagreements": [],
+  "structured/n=360": {
+    "clique": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 1.5108149169999763,
+      "median_seconds": 1.5108149169999763,
+      "runs": 1
+    },
+    "clique_over_envelope_geomean_joint": 1.0122193894078853,
+    "clique_over_envelope_joint_count": 1,
+    "compact_highs": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 1.572928208999997,
+      "median_seconds": 1.572928208999997,
+      "runs": 1
+    },
+    "compact_highs_over_envelope_geomean_joint": 1.0538342012520918,
+    "compact_highs_over_envelope_joint_count": 1,
+    "compact_scip": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 6.275407502999997,
+      "median_seconds": 6.275407502999997,
+      "runs": 1
+    },
+    "compact_scip_over_envelope_geomean_joint": 4.204412519030231,
+    "compact_scip_over_envelope_joint_count": 1,
+    "direct": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 0.25533095899999125,
+      "median_seconds": 0.25533095899999125,
+      "runs": 1
+    },
+    "direct_over_envelope_geomean_joint": 0.17106724623099875,
+    "direct_over_envelope_joint_count": 1,
+    "envelope": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 1.4925765429999842,
+      "median_seconds": 1.4925765429999842,
+      "runs": 1
+    }
+  }
+}

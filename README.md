@@ -8,7 +8,7 @@ Multiple-Choice Knapsack* (revision line of
 The current release is
 [`v2.1.0`](https://github.com/eric939/simultaneous-group-envelope-mckp/tree/v2.1.0).
 It adds two experiments with a frozen protocol, recorded in
-`results/release/2026-11-01-v2.1-scale/`: the complete LP-family search
+`results/release/2026-11-02-v2.1.1-scale/`: the complete LP-family search
 against evaluating every fixed-threshold LP directly, and exact robust MCKP
 at n = 360–1440 against direct threshold enumeration and compact MILPs
 (HiGHS, SCIP). The evaluator and comparators are unchanged from
@@ -63,9 +63,13 @@ repository.
 - `research/scale_campaign.py` and `research/fixed_theta_highs.py`: the v2.1
   direct-baseline and exact-integer experiments, with HiGHS fixed-threshold
   subproblems and compact MILPs.
-- `results/release/2026-11-01-v2.1-scale/`: every planned run of both v2.1
-  phases, protocol, environments, logs, non-reported pilots, a post-hoc
-  set-up diagnostic and a SHA-256 manifest.
+- `results/release/2026-11-02-v2.1.1-scale/`: the reported scale campaign
+  (protocol v2.1.1, integer phase under amendment v2.1.2 in a container):
+  every planned run, protocol, environments, logs, the container recipe and
+  host-load samples, stopped attempts, non-reported pilots and a SHA-256
+  manifest.
+- `results/release/2026-11-01-v2.1-scale/`: the superseded v2.1 campaign,
+  kept unchanged (see its successor's `B_V211_SCALE_PROTOCOL.md`).
 - `results/release/2026-10-0*-primary-heldout/`: five earlier held-out primary
   confirmations on pinned intermediate repair revisions.
 - `provenance/`: the separately hashed current-layer release map, UCI source
@@ -123,7 +127,7 @@ See `provenance/DEVELOPMENT_HISTORY.md`.
 The mathematical guarantees of the paper hold in exact real arithmetic. The
 implementation computes in binary64 with outward error enclosures and exact
 rational fallbacks for ambiguous signs and nonfinite intermediates. These
-safeguards are tested (266 tests) and parts of the enclosure arithmetic are
+safeguards are tested (267 tests) and parts of the enclosure arithmetic are
 proved in a separate Lean model, but the solver as a whole is not formally
 verified, and HiGHS LP values are accepted on the solver's reported status.
 The external coefficient-transfer panel was not rerun for v2.0.2 and keeps its

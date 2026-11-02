@@ -1,0 +1,273 @@
+{
+  "application/n=1440": {
+    "clique": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 11.771102625061758,
+      "median_seconds": 11.771102625061758,
+      "runs": 1
+    },
+    "clique_over_envelope_geomean_joint": 0.5375350931367858,
+    "clique_over_envelope_joint_count": 1,
+    "compact_highs": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 16.591504417010583,
+      "median_seconds": 16.591504417010583,
+      "runs": 1
+    },
+    "compact_highs_over_envelope_geomean_joint": 0.7576618908316064,
+    "compact_highs_over_envelope_joint_count": 1,
+    "compact_scip": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 5.045857125078328,
+      "median_seconds": 5.045857125078328,
+      "runs": 1
+    },
+    "compact_scip_over_envelope_geomean_joint": 0.23042236280474723,
+    "compact_scip_over_envelope_joint_count": 1,
+    "direct": {
+      "certified": 0,
+      "inexact": 0,
+      "max_seconds": 30.006556041073054,
+      "median_seconds": 30.006556041073054,
+      "runs": 1
+    },
+    "direct_over_envelope_geomean_joint": null,
+    "direct_over_envelope_joint_count": 0,
+    "envelope": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 21.89829608402215,
+      "median_seconds": 21.89829608402215,
+      "runs": 1
+    }
+  },
+  "application/n=360": {
+    "clique": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 1.586316040949896,
+      "median_seconds": 1.586316040949896,
+      "runs": 1
+    },
+    "clique_over_envelope_geomean_joint": 0.38734475958399567,
+    "clique_over_envelope_joint_count": 1,
+    "compact_highs": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 1.1733030000468716,
+      "median_seconds": 1.1733030000468716,
+      "runs": 1
+    },
+    "compact_highs_over_envelope_geomean_joint": 0.2864957276736577,
+    "compact_highs_over_envelope_joint_count": 1,
+    "compact_scip": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 0.8252327499212697,
+      "median_seconds": 0.8252327499212697,
+      "runs": 1
+    },
+    "compact_scip_over_envelope_geomean_joint": 0.20150434898690528,
+    "compact_scip_over_envelope_joint_count": 1,
+    "direct": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 6.938291333033703,
+      "median_seconds": 6.938291333033703,
+      "runs": 1
+    },
+    "direct_over_envelope_geomean_joint": 1.694183705479245,
+    "direct_over_envelope_joint_count": 1,
+    "envelope": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 4.095359500031918,
+      "median_seconds": 4.095359500031918,
+      "runs": 1
+    }
+  },
+  "application/n=720": {
+    "clique": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 2.71786133304704,
+      "median_seconds": 2.71786133304704,
+      "runs": 1
+    },
+    "clique_over_envelope_geomean_joint": 0.304672961878481,
+    "clique_over_envelope_joint_count": 1,
+    "compact_highs": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 20.750929125002585,
+      "median_seconds": 20.750929125002585,
+      "runs": 1
+    },
+    "compact_highs_over_envelope_geomean_joint": 2.326184548627062,
+    "compact_highs_over_envelope_joint_count": 1,
+    "compact_scip": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 5.655463665956631,
+      "median_seconds": 5.655463665956631,
+      "runs": 1
+    },
+    "compact_scip_over_envelope_geomean_joint": 0.6339789469580407,
+    "compact_scip_over_envelope_joint_count": 1,
+    "direct": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 27.596973874955438,
+      "median_seconds": 27.596973874955438,
+      "runs": 1
+    },
+    "direct_over_envelope_geomean_joint": 3.0936279445645325,
+    "direct_over_envelope_joint_count": 1,
+    "envelope": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 8.920585917076096,
+      "median_seconds": 8.920585917076096,
+      "runs": 1
+    }
+  },
+  "objective_disagreements": [],
+  "structured/n=1440": {
+    "clique": {
+      "certified": 4,
+      "inexact": 0,
+      "max_seconds": 19.039667000062764,
+      "median_seconds": 14.43036935449345,
+      "runs": 4
+    },
+    "clique_over_envelope_geomean_joint": 1.0243562226224536,
+    "clique_over_envelope_joint_count": 4,
+    "compact_highs": {
+      "certified": 2,
+      "inexact": 0,
+      "max_seconds": 32.70550058293156,
+      "median_seconds": 27.925657812564168,
+      "runs": 4
+    },
+    "compact_highs_over_envelope_geomean_joint": 3.2606921658115047,
+    "compact_highs_over_envelope_joint_count": 2,
+    "compact_scip": {
+      "certified": 1,
+      "inexact": 0,
+      "max_seconds": 31.615440750028938,
+      "median_seconds": 30.056266729021445,
+      "runs": 4
+    },
+    "compact_scip_over_envelope_geomean_joint": 2.258457460496267,
+    "compact_scip_over_envelope_joint_count": 1,
+    "direct": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 30.002109208027832,
+      "median_seconds": 5.032536395941861,
+      "runs": 4
+    },
+    "direct_over_envelope_geomean_joint": 0.35705622473273585,
+    "direct_over_envelope_joint_count": 3,
+    "envelope": {
+      "certified": 4,
+      "inexact": 0,
+      "max_seconds": 21.49129450006876,
+      "median_seconds": 14.445561375003308,
+      "runs": 4
+    }
+  },
+  "structured/n=360": {
+    "clique": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 30.023904333007522,
+      "median_seconds": 5.1775851040147245,
+      "runs": 4
+    },
+    "clique_over_envelope_geomean_joint": 1.0568701014955297,
+    "clique_over_envelope_joint_count": 3,
+    "compact_highs": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 30.01563433301635,
+      "median_seconds": 11.589336166449357,
+      "runs": 4
+    },
+    "compact_highs_over_envelope_geomean_joint": 2.3011069108840485,
+    "compact_highs_over_envelope_joint_count": 2,
+    "compact_scip": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 30.02686533308588,
+      "median_seconds": 12.565840958501212,
+      "runs": 4
+    },
+    "compact_scip_over_envelope_geomean_joint": 4.3708588574703535,
+    "compact_scip_over_envelope_joint_count": 2,
+    "direct": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 30.034214375074953,
+      "median_seconds": 1.4546944790054113,
+      "runs": 4
+    },
+    "direct_over_envelope_geomean_joint": 0.25150273532982476,
+    "direct_over_envelope_joint_count": 3,
+    "envelope": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 30.02514100004919,
+      "median_seconds": 4.6472365210647695,
+      "runs": 4
+    }
+  },
+  "structured/n=720": {
+    "clique": {
+      "certified": 4,
+      "inexact": 0,
+      "max_seconds": 23.067148750065826,
+      "median_seconds": 6.476936666527763,
+      "runs": 4
+    },
+    "clique_over_envelope_geomean_joint": 1.045175136728495,
+    "clique_over_envelope_joint_count": 4,
+    "compact_highs": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 30.055133917019702,
+      "median_seconds": 14.491253812448122,
+      "runs": 4
+    },
+    "compact_highs_over_envelope_geomean_joint": 1.9921289455758542,
+    "compact_highs_over_envelope_joint_count": 3,
+    "compact_scip": {
+      "certified": 2,
+      "inexact": 0,
+      "max_seconds": 31.06492412497755,
+      "median_seconds": 18.148824291536584,
+      "runs": 4
+    },
+    "compact_scip_over_envelope_geomean_joint": 0.5056267408528644,
+    "compact_scip_over_envelope_joint_count": 2,
+    "direct": {
+      "certified": 3,
+      "inexact": 0,
+      "max_seconds": 30.042098582955077,
+      "median_seconds": 2.4700836869888008,
+      "runs": 4
+    },
+    "direct_over_envelope_geomean_joint": 0.3444921326714958,
+    "direct_over_envelope_joint_count": 3,
+    "envelope": {
+      "certified": 4,
+      "inexact": 0,
+      "max_seconds": 21.932756874943152,
+      "median_seconds": 6.720295167004224,
+      "runs": 4
+    }
+  }
+}

@@ -313,10 +313,10 @@ def verify_release_revision(root: Path) -> tuple[int, list[str]]:
 
 
 SUPERSEDED_SCALE_RELEASE = ROOT / "results" / "release" / "2026-11-01-v2.1-scale"
-SCALE_RELEASE = ROOT / "results" / "release" / "2026-11-01-v2.1.1-scale"
+SCALE_RELEASE = ROOT / "results" / "release" / "2026-11-02-v2.1.1-scale"
 
 
-def verify_scale_release(root: Path, version: str, gated: bool) -> tuple[int, int, int]:
+def verify_scale_release(root: Path, versions: dict[str, str], cold: bool) -> tuple[int, int, int]:
     """Check integrity and internal consistency of a scale campaign's evidence."""
     manifest = verify_manifest(root)
     counts = {"lp-direct": ("lp_direct.csv", 105), "integer": ("integer.csv", 225)}
@@ -325,7 +325,7 @@ def verify_scale_release(root: Path, version: str, gated: bool) -> tuple[int, in
         directory = root / phase
         protocol_digest = sha256(directory / "protocol.json")
         protocol = json.loads((directory / "protocol.json").read_text(encoding="utf-8"))
-        require(protocol["version"] == version, f"unexpected protocol in {phase}")
+        require(protocol["version"] == versions[phase], f"unexpected protocol in {phase}")
         require(int(protocol["threads"]) == 1, f"protocol does not fix one thread in {phase}")
         environment = json.loads(
             (directory / f"environment_{phase}.json").read_text(encoding="utf-8")
@@ -339,13 +339,17 @@ def verify_scale_release(root: Path, version: str, gated: bool) -> tuple[int, in
         require(ancestor.returncode == 0, f"{phase} commit {commit} is not in this history")
         rows[phase] = csv_rows(directory / name)
         require(len(rows[phase]) == expected, f"unexpected row count in {phase}/{name}")
-        if gated:
-            gate = float(protocol["load_gate"]["one_minute_load_average_below"])
+        gate = protocol.get("load_gate", {})
+        if "one_minute_load_average_below" in gate:
+            bound = float(gate["one_minute_load_average_below"])
             for row in rows[phase]:
-                require(float(row["load_average_at_start"]) < gate, f"{phase} run started above the load gate")
-    if gated:
-        protocol = json.loads((root / "integer" / "protocol.json").read_text(encoding="utf-8"))
-        require(protocol["integer"]["incumbent"].startswith("every method starts cold"), "integer runs not cold")
+                require(float(row["load_average_at_start"]) < bound, f"{phase} run started above the load gate")
+        elif gate:  # amendment: no gate, the host load is recorded for every run
+            require(gate["applied"] is False, f"unexpected load gate in {phase}")
+            for row in rows[phase]:
+                require(float(row["load_average_at_start"]) > 0.0, f"{phase} run lacks a host load")
+        if cold and phase == "integer":
+            require(protocol["integer"]["incumbent"].startswith("every method starts cold"), "integer runs not cold")
     for row in rows["lp-direct"]:
         for method in ("batched", "clique"):
             require(row[f"{method}_status"] in {"tolerance", "exact"}, f"{method} search failed")
@@ -480,12 +484,15 @@ def main() -> None:
     revision_files, gate_report = verify_release_revision(RELEASE_REVISION)
     for line in gate_report:
         print(f"v2.0.2 evidence gate outcome: {line}")
+    old_version = "v2.1-scale-20261101-frozen"
     old_files, _, _ = verify_scale_release(
-        SUPERSEDED_SCALE_RELEASE, "v2.1-scale-20261101-frozen", gated=False
+        SUPERSEDED_SCALE_RELEASE, {"lp-direct": old_version, "integer": old_version}, cold=False
     )
     print(f"superseded v2.1 scale evidence: {old_files} files")
     scale_files, scale_lp, scale_integer = verify_scale_release(
-        SCALE_RELEASE, "v2.1.1-scale-20261101-frozen", gated=True
+        SCALE_RELEASE,
+        {"lp-direct": "v2.1.1-scale-20261101-frozen", "integer": "v2.1.2-integer-container-20261102-frozen"},
+        cold=True,
     )
     print(f"v2.1.1 scale evidence: {scale_files} files, {scale_lp} LP-family instances, "
           f"{scale_integer} integer runs")

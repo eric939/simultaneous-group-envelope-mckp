@@ -21,25 +21,36 @@ v2.0.2.
 - `research/integrated_exact_solver.py`: optional HiGHS subproblems and
   fixed-threshold LP bounds on single-threshold intervals (defaults
   unchanged).
-- `results/release/2026-11-01-v2.1-scale/`: complete records of both
-  phases (every planned run, including time-outs and overruns), protocol,
-  environments, logs, the non-reported pilots, a post-hoc diagnostic of the
-  integer set-up time, and a SHA-256 manifest.
-- `tests/test_scale_campaign.py`; `scripts/verify_release.py` checks the
-  v2.1 evidence.
+- Protocol v2.1.1 replaces v2.1 before any reported result is used: every
+  integer method starts cold (the rounding heuristic did not check the time
+  limit), each run starts only below a one-minute load of 2, and CPU time,
+  host load and search effort are recorded. Amendment v2.1.2 runs the
+  integer phase in a Linux container without the gate, recording the host
+  load from a sampler outside the container (`--container-host-load`).
+- `results/release/2026-11-02-v2.1.1-scale/`: the reported campaign (every
+  planned run, including time-outs), protocol note, environments, logs,
+  container recipe and host-load samples, two stopped integer attempts, the
+  non-reported pilots, and a SHA-256 manifest.
+- `results/release/2026-11-01-v2.1-scale/`: the superseded v2.1 campaign,
+  run on a busy machine with the heuristic start, kept unchanged.
+- `tests/test_scale_campaign.py`; `scripts/verify_release.py` checks both
+  campaigns, the load gate of the LP-family phase and the cold starts.
 
-### Findings recorded in the evidence
+### Findings recorded in the v2.1.1 evidence
 - The batched bound is faster than the clique LP on all 60 held-out
-  instances; the clique LP is faster on all 9 pricing instances.
-- A direct scan of every fixed-threshold LP is faster than either search
-  when there are 26 thresholds; the batched search is faster when there are
-  thousands.
-- In exact integer search the two interval bounds give the same certified
-  instances and times; direct enumeration is faster on the structured
-  families and the compact MILPs on the pricing panel.
-- The threshold-based integer methods do not check the time limit during the
-  initial rounding heuristic, which overran the limit on the six instances
-  with B ≥ 7201; these runs are recorded as failures.
+  instances (2.27 times in geometric mean); the clique LP is faster on all 9
+  pricing instances. The batched root bound is never looser than the
+  clique root bound on the 102 instances with a completed scan.
+- A direct scan of every fixed-threshold LP is about as fast as the batched
+  search with 25–26 thresholds; the batched search is faster on all 15
+  instances with thousands of thresholds (45 times in geometric mean).
+- In exact integer search both bounds lead to the same number of
+  fixed-threshold subproblems on 44 of 45 instances, and these take a median
+  of over 90% of the time, so the bound changes the time only by its own
+  cost. Direct enumeration is fastest with few thresholds; the compact MILPs
+  are fastest on the smallest many-breakpoints instances, and the clique-LP
+  search and SCIP on the pricing panel. 178 of 225 runs certify; all certified
+  objectives agree.
 
 ## v2.0.2 — 31 October 2026
 

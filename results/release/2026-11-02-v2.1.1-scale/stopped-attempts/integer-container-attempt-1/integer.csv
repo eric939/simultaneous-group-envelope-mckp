@@ -1,0 +1,2 @@
+bound_seconds,certified,cpu_seconds,exactly_feasible,family,fixed_theta_seconds,instance,interval_bound_evaluations,load_average_at_start,method,n,objective,panel,relative_gap,seconds,seed,status,theta_count,theta_solves,upper_bound,wall_seconds,within_limit
+0.057023166999954356,True,4.242237479,True,dense_frontier,3.3052673349999964,dense_frontier_n360_m6_g18_s701,10,4.05,envelope,360,9026.601856186102,structured,0.0,3.388541626999995,701,optimal,26,4,9026.601856186102,3.3893606690000126,True

@@ -23,21 +23,27 @@ exact-integration audit. Reproduce it with the v2.0.2 checkout by running the
 phases of `research/v4_publication_campaign.py` into a new directory (see
 `make reproduce`) and the held-out panel by replacing the primary seed list.
 
-The v2.1 scale experiments (`results/release/2026-11-01-v2.1-scale/`) used
-the same lock file under CPython 3.12.12 with PySCIPOpt 6.2.1, single-threaded
-and serial, on an Apple M4 that was not otherwise idle (the one-minute load
-averages at the start of the two phases are recorded in the
-`environment_*.json` files). Their protocol is the `PROTOCOL` dictionary of
-`research/scale_campaign.py`, serialized as `protocol.json`; the runner
-refuses a dirty tracked tree. Rerun them into a new directory with
+The reported scale experiments (`results/release/2026-11-02-v2.1.1-scale/`)
+used the same lock file under CPython 3.12.12 with PySCIPOpt 6.2.1,
+single-threaded and serial, on an Apple M4. The LP-family phase ran natively
+and started each instance only below a one-minute load of 2 (protocol
+v2.1.1). The integer phase ran in a Linux container on the same laptop
+without that gate while unrelated jobs ran, recording the host load sampled
+outside the container (amendment v2.1.2); `B_V211_SCALE_PROTOCOL.md` explains
+why, and `container/` holds the Dockerfile, the run script and the samples.
+The protocol is the `PROTOCOL` dictionary of `research/scale_campaign.py`,
+serialized as `protocol.json`; the runner refuses a dirty tracked tree. The
+superseded v2.1 campaign is kept in `results/release/2026-11-01-v2.1-scale/`.
+Rerun the experiments natively into a new directory with
 
 ```bash
 make scale PYTHON=.venv/bin/python
 ```
 
-Pilots used other seeds and are kept, unreported, in `pilots-not-reported/`.
-`post-hoc-diagnostic/` times the initial rounding heuristic on two instances
-after the campaign; it is not part of the protocol.
+or the integer phase in the container with `container/run_v212_docker.sh`
+after building `container/Dockerfile` and starting
+`container/host_load_sampler.sh` (adjust the paths in both scripts). Pilots
+used other seeds and are kept, unreported, in `pilots-not-reported/`.
 
 The implementation requires aggregate objective minima and maxima to remain
 finite and representable in binary64. Inputs outside that domain are rejected

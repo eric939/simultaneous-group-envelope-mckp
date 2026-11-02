@@ -1,0 +1,21 @@
+{
+  "heldout/heldout": {
+    "batched_agrees_with_direct": 2,
+    "batched_completed": 0,
+    "batched_vs_clique_geomean_speedup": 2.4010147728346425,
+    "batched_vs_direct_geomean_speedup": 1.0590684164557111,
+    "batched_wins_vs_direct": 1,
+    "clique_agrees_with_direct": 2,
+    "clique_completed": 0,
+    "clique_vs_direct_geomean_speedup": 0.4410920034470979,
+    "clique_wins_vs_direct": 0,
+    "direct_completed": 2,
+    "fastest_counts": {
+      "batched": 1,
+      "clique": 0,
+      "direct": 1
+    },
+    "instances": 2,
+    "median_theta_count": 26.0
+  }
+}
