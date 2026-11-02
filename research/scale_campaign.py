@@ -313,7 +313,14 @@ def _load_average() -> float:
     """One-minute load average of the machine, read from the host sampler in a container."""
     if HOST_LOAD_FILE is None:
         return os.getloadavg()[0]
-    stamp, load = HOST_LOAD_FILE.read_text().split()
+    for attempt in range(50):  # the sampler replaces the file, which a bind mount can briefly miss
+        try:
+            stamp, load = HOST_LOAD_FILE.read_text().split()
+            break
+        except (FileNotFoundError, ValueError):
+            if attempt == 49:
+                raise
+            time.sleep(0.2)
     if time.time() - float(stamp) > 60.0:
         raise SystemExit(f"host load sample in {HOST_LOAD_FILE} is stale")
     return float(load)
