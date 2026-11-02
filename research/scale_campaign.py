@@ -75,6 +75,7 @@ LP_METHODS = ("batched", "clique", "direct")
 INTEGER_METHODS = ("envelope", "clique", "direct", "compact_highs", "compact_scip")
 CALIBRATION = "results/release/2026-08-09-paper-b-final-r5/uci_calibration"
 LOAD_GATE = 2.0
+HOST_LOAD_FILE: Path | None = None  # container runs: host load written by an outside sampler
 
 PROTOCOL = {
     "version": "v2.1.1-scale-20261101-frozen",
@@ -128,6 +129,19 @@ PROTOCOL = {
         "singleton_intervals": "both threshold searches bound a single-threshold interval by "
                                "its fixed-threshold LP, as the LP-family search does",
     },
+}
+
+
+CONTAINER_AMENDMENT = {
+    "version": "v2.1.2-integer-container-20261102-frozen",
+    "revision_note": "integer phase of v2.1.1 rerun in a Linux container on the same host, "
+                     "because unrelated jobs kept the host load above the gate; no load gate "
+                     "is applied, and the recorded load is the host's one-minute load average "
+                     "from a sampler outside the container; instances, seeds, methods, limits "
+                     "and cold starts are unchanged",
+    "load_gate": {"applied": False,
+                  "recorded": "host one-minute load average, sampled every 5 s outside "
+                              "the container"},
 }
 
 
@@ -295,9 +309,19 @@ def _timed(function):
     return time.perf_counter() - start, time.process_time() - cpu, result
 
 
+def _load_average() -> float:
+    """One-minute load average of the machine, read from the host sampler in a container."""
+    if HOST_LOAD_FILE is None:
+        return os.getloadavg()[0]
+    stamp, load = HOST_LOAD_FILE.read_text().split()
+    if time.time() - float(stamp) > 60.0:
+        raise SystemExit(f"host load sample in {HOST_LOAD_FILE} is stale")
+    return float(load)
+
+
 def _wait_for_quiet_machine() -> float:
     """Block until the one-minute load average is below the gate; return it."""
-    while (load := os.getloadavg()[0]) >= LOAD_GATE:
+    while (load := _load_average()) >= LOAD_GATE:
         print(f"load {load:.2f} >= {LOAD_GATE}; waiting", flush=True)
         time.sleep(30)
     return load
@@ -328,7 +352,7 @@ def run_lp_direct(out: Path, limit: int | None = None) -> None:
                 raw.append({"panel": panel, "configuration": config, "family": family, "n": n,
                             "seed": seed, "method": method, "repeat": repeat, "seconds": seconds,
                             "cpu_seconds": cpu, "status": result["status"],
-                            "load_average": os.getloadavg()[0]})
+                            "load_average": _load_average()})
         med = {m: float(np.median(times[m])) for m in LP_METHODS}
         direct = results["direct"][0]
         batched, clique = results["batched"][0], results["clique"][0]
@@ -479,7 +503,7 @@ def initialize(out: Path, phase: str, pilot: bool) -> None:
         "source_sha256": {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in sources},
         "python": sys.version, "numpy": np.__version__, "scipy": scipy.__version__,
         "pyscipopt": pyscipopt.__version__, "platform": platform.platform(),
-        "machine": platform.machine(), "load_average_at_start": os.getloadavg(),
+        "machine": platform.machine(), "load_average_at_start": _load_average(),
         "thread_environment": {k: os.environ.get(k) for k in (
             "OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
             "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS")},
@@ -488,6 +512,7 @@ def initialize(out: Path, phase: str, pilot: bool) -> None:
 
 
 def main() -> None:
+    global LOAD_GATE, HOST_LOAD_FILE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("phase", choices=["lp-direct", "integer"])
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -495,14 +520,22 @@ def main() -> None:
                         help="pilot: pilot seeds only, first K instances; results are not reported")
     parser.add_argument("--pilot-time-limit", type=float, default=None,
                         help="pilot only: integer time limit override")
+    parser.add_argument("--container-host-load", type=Path, default=None,
+                        help="integer phase in a container on a shared host: no load gate, "
+                             "host load read from this file (protocol v2.1.2)")
     args = parser.parse_args()
     pilot = args.pilot_limit is not None
+    if args.container_host_load is not None:
+        if args.phase != "integer":
+            raise SystemExit("--container-host-load applies to the integer phase only")
+        HOST_LOAD_FILE = args.container_host_load
+        LOAD_GATE = float("inf")
+        PROTOCOL.update(CONTAINER_AMENDMENT)
     if args.pilot_time_limit is not None:
         if not pilot:
             raise SystemExit("--pilot-time-limit requires --pilot-limit")
         PROTOCOL["integer"]["time_limit_seconds"] = float(args.pilot_time_limit)
     if pilot:  # pilots time nothing that is reported, so they ignore the load gate
-        global LOAD_GATE
         LOAD_GATE = float("inf")
     if pilot:  # separate seeds, so no reported instance is seen before the protocol is frozen
         panels = PROTOCOL["lp_direct"]["panels"]

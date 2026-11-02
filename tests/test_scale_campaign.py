@@ -48,3 +48,11 @@ def test_protocol_is_frozen() -> None:
     assert PROTOCOL["version"] == "v2.1.1-scale-20261101-frozen"
     assert PROTOCOL["integer"]["incumbent"].startswith("every method starts cold")
     assert PROTOCOL["integer"]["time_limit_seconds"] == 120.0
+
+
+def test_container_amendment_changes_only_the_load_gate() -> None:
+    from research.scale_campaign import CONTAINER_AMENDMENT
+
+    assert CONTAINER_AMENDMENT["version"] == "v2.1.2-integer-container-20261102-frozen"
+    assert set(CONTAINER_AMENDMENT) == {"version", "revision_note", "load_gate"}
+    assert CONTAINER_AMENDMENT["load_gate"]["applied"] is False

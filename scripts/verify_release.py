@@ -312,11 +312,12 @@ def verify_release_revision(root: Path) -> tuple[int, list[str]]:
     return len(manifest), report
 
 
-SCALE_RELEASE = ROOT / "results" / "release" / "2026-11-01-v2.1-scale"
+SUPERSEDED_SCALE_RELEASE = ROOT / "results" / "release" / "2026-11-01-v2.1-scale"
+SCALE_RELEASE = ROOT / "results" / "release" / "2026-11-01-v2.1.1-scale"
 
 
-def verify_scale_release(root: Path) -> tuple[int, int, int]:
-    """Check integrity and internal consistency of the v2.1 scale evidence."""
+def verify_scale_release(root: Path, version: str, gated: bool) -> tuple[int, int, int]:
+    """Check integrity and internal consistency of a scale campaign's evidence."""
     manifest = verify_manifest(root)
     counts = {"lp-direct": ("lp_direct.csv", 105), "integer": ("integer.csv", 225)}
     rows = {}
@@ -324,7 +325,7 @@ def verify_scale_release(root: Path) -> tuple[int, int, int]:
         directory = root / phase
         protocol_digest = sha256(directory / "protocol.json")
         protocol = json.loads((directory / "protocol.json").read_text(encoding="utf-8"))
-        require(protocol["version"] == "v2.1-scale-20261101-frozen", f"unexpected protocol in {phase}")
+        require(protocol["version"] == version, f"unexpected protocol in {phase}")
         require(int(protocol["threads"]) == 1, f"protocol does not fix one thread in {phase}")
         environment = json.loads(
             (directory / f"environment_{phase}.json").read_text(encoding="utf-8")
@@ -338,6 +339,13 @@ def verify_scale_release(root: Path) -> tuple[int, int, int]:
         require(ancestor.returncode == 0, f"{phase} commit {commit} is not in this history")
         rows[phase] = csv_rows(directory / name)
         require(len(rows[phase]) == expected, f"unexpected row count in {phase}/{name}")
+        if gated:
+            gate = float(protocol["load_gate"]["one_minute_load_average_below"])
+            for row in rows[phase]:
+                require(float(row["load_average_at_start"]) < gate, f"{phase} run started above the load gate")
+    if gated:
+        protocol = json.loads((root / "integer" / "protocol.json").read_text(encoding="utf-8"))
+        require(protocol["integer"]["incumbent"].startswith("every method starts cold"), "integer runs not cold")
     for row in rows["lp-direct"]:
         for method in ("batched", "clique"):
             require(row[f"{method}_status"] in {"tolerance", "exact"}, f"{method} search failed")
@@ -472,8 +480,14 @@ def main() -> None:
     revision_files, gate_report = verify_release_revision(RELEASE_REVISION)
     for line in gate_report:
         print(f"v2.0.2 evidence gate outcome: {line}")
-    scale_files, scale_lp, scale_integer = verify_scale_release(SCALE_RELEASE)
-    print(f"v2.1 scale evidence: {scale_files} files, {scale_lp} LP-family instances, "
+    old_files, _, _ = verify_scale_release(
+        SUPERSEDED_SCALE_RELEASE, "v2.1-scale-20261101-frozen", gated=False
+    )
+    print(f"superseded v2.1 scale evidence: {old_files} files")
+    scale_files, scale_lp, scale_integer = verify_scale_release(
+        SCALE_RELEASE, "v2.1.1-scale-20261101-frozen", gated=True
+    )
+    print(f"v2.1.1 scale evidence: {scale_files} files, {scale_lp} LP-family instances, "
           f"{scale_integer} integer runs")
 
     print(
