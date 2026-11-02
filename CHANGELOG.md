@@ -40,14 +40,17 @@ v2.0.2.
 - The batched bound is faster than the clique LP on all 60 held-out
   instances (2.27 times in geometric mean); the clique LP is faster on all 9
   pricing instances. The batched root bound is never looser than the
-  clique root bound on the 102 instances with a completed scan.
+  clique root bound, up to rounding error, on the 102 instances with a
+  completed scan.
 - A direct scan of every fixed-threshold LP is about as fast as the batched
-  search with 25–26 thresholds; the batched search is faster on all 15
+  search, or faster, with 25–26 thresholds; the batched search is faster on all 15
   instances with thousands of thresholds (45 times in geometric mean).
 - In exact integer search both bounds lead to the same number of
-  fixed-threshold subproblems on 44 of 45 instances, and these take a median
-  of over 90% of the time, so the bound changes the time only by its own
-  cost. Direct enumeration is fastest with few thresholds; the compact MILPs
+  fixed-threshold subproblems on 44 of 45 instances, so the bound changes
+  the time only by its own cost: little on the structured families, where
+  the subproblems take a median of over 96% of the time, while on the
+  pricing panel the batched bound takes 57% and the clique-LP search is
+  about twice as fast. Direct enumeration is fastest with few thresholds; the compact MILPs
   are fastest on the smallest many-breakpoints instances, and the clique-LP
   search and SCIP on the pricing panel. 178 of 225 runs certify; all certified
   objectives agree.

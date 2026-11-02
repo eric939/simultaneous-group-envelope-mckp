@@ -4,8 +4,10 @@ This campaign replaces the v2.1 campaign in `../2026-11-01-v2.1-scale`, which
 is kept unchanged as a superseded record. The v2.1 runs were made while
 unrelated jobs loaded the machine (one-minute load 44 at the start of the
 LP-family phase, 12 at the start of the integer phase), and the integer
-methods started from a rounding heuristic that did not check the time limit,
-so 26 integer runs exceeded the limit. Instances, seeds, methods and limits
+methods started from a rounding heuristic that did not check the time limit.
+27 integer runs exceeded the limit by more than one second: 18 runs of the
+threshold-based methods (199–331 s, consistent with the heuristic) and 9
+cold-started compact MILP runs (up to 123 s). Instances, seeds, methods and limits
 are unchanged; the driver is `research/scale_campaign.py`, whose `PROTOCOL`
 dictionary, serialized as `protocol.json` in every output directory, is the
 authoritative design.
@@ -47,7 +49,11 @@ was restarted from the start. That attempt is kept in
 `stopped-attempts/integer-container-attempt-1/`; a one-instance smoke test on
 a pilot seed is in `pilots-not-reported/pilot-container-smoke/`.
 
-Reported integer evidence: `integer/`, `integer.log` (225 runs). Build recipe:
+Reported integer evidence: `integer/`, `integer.log` (225 runs). The two
+phases ran at different commits (dc7a635 for `lp-direct`, 0885e82 for
+`integer`); they differ only in the container mode of
+`research/scale_campaign.py`, so that file's hash differs between the two
+`environment_*.json` files while the hashes of the method code agree. Build recipe:
 `container/Dockerfile` (a clone of this repository at commit 0885e82) and
 `container/run_v212_docker.sh`.
 
